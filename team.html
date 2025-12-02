@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title id="team-page-title">Team – StegSports CFP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="College Football Playoff team profile and tickets powered by StegSports." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="cfp-body">
+  <header class="cfp-header">
+    <div class="cfp-header-inner">
+      <div class="cfp-brand">
+        <span class="cfp-logo-dot"></span>
+        <span class="cfp-logo-text">StegSports CFP</span>
+      </div>
+      <nav class="cfp-nav">
+        <a href="index.html" class="cfp-nav-link">Rankings</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="cfp-main">
+    <section class="cfp-hero team-hero">
+      <div class="cfp-hero-text">
+        <h1 id="team-name">Team Name</h1>
+        <p class="cfp-hero-subtitle" id="team-meta">Record • Conference</p>
+      </div>
+    </section>
+
+    <section class="cfp-section">
+      <header class="cfp-section-header">
+        <h2>Upcoming Games</h2>
+      </header>
+      <div class="cfp-table-wrapper">
+        <table class="cfp-table" id="team-games-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Opponent</th>
+              <th>Location</th>
+              <th>CFP Impact</th>
+              <th>Tickets</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- filled by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="cfp-footer">
+    <div class="cfp-footer-inner">
+      <p class="cfp-footer-text">
+        © <span id="cfp-year"></span> StegSports.
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/seatgeek.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      StegCFP.initTeamPage();
+    });
+  </script>
+</body>
+</html>
