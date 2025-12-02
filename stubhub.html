@@ -36,14 +36,15 @@
 
     <section class="cfp-section">
       <header class="cfp-section-header">
-        <h2>Quick Search</h2>
+        <h2>Smart Group Search</h2>
       </header>
       <div class="cfp-card">
         <p style="margin-top: 0; font-size: 0.9rem; color: var(--cfp-text-muted);">
-          Type the matchup, bowl name, or team you’re looking for. We’ll open StubHub in a new tab with our affiliate tracking applied.
+          Type the matchup, bowl name, or team you’re looking for and, optionally, tell us about your group.
+          We’ll open StubHub in a new tab with your preferences encoded in the link for future StegSports intelligence.
         </p>
         <form id="stubhub-search-form" class="cfp-stubhub-form">
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
             <input
               type="text"
               id="stubhub-query"
@@ -60,6 +61,49 @@
             <button type="submit" class="cfp-btn">
               Search StubHub
             </button>
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; font-size: 0.85rem;">
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <label for="group-size" style="color: var(--cfp-text-muted);">Group size (optional)</label>
+              <input
+                type="number"
+                id="group-size"
+                min="1"
+                step="1"
+                style="
+                  width: 70px;
+                  padding: 0.3rem 0.4rem;
+                  border-radius: 999px;
+                  border: 1px solid var(--cfp-border);
+                  font-size: 0.85rem;
+                "
+              />
+            </div>
+
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <label for="max-rows" style="color: var(--cfp-text-muted);">Max rows</label>
+              <select
+                id="max-rows"
+                style="
+                  padding: 0.3rem 0.6rem;
+                  border-radius: 999px;
+                  border: 1px solid var(--cfp-border);
+                  font-size: 0.85rem;
+                  background: #ffffff;
+                "
+              >
+                <option value="">Any</option>
+                <option value="1">Same row only</option>
+                <option value="2">Up to 2 rows</option>
+                <option value="3">Up to 3 rows</option>
+              </select>
+            </div>
+
+            <label style="display:flex; align-items:center; gap:0.35rem; color: var(--cfp-text-muted);">
+              <input type="checkbox" id="stacked-ok" />
+              <span>Stacked rows ok (front/back)</span>
+            </label>
           </div>
         </form>
       </div>
@@ -136,20 +180,41 @@
         el.textContent = new Date().getFullYear();
       });
 
-      // form submit
       var form = document.getElementById("stubhub-search-form");
       var input = document.getElementById("stubhub-query");
+      var groupInput = document.getElementById("group-size");
+      var rowsSelect = document.getElementById("max-rows");
+      var stackedCheckbox = document.getElementById("stacked-ok");
+
+      function buildOpts() {
+        var opts = {};
+        if (groupInput && groupInput.value) {
+          var n = parseInt(groupInput.value, 10);
+          if (!isNaN(n) && n > 0) {
+            opts.groupSize = n;
+          }
+        }
+        if (rowsSelect && rowsSelect.value) {
+          opts.maxRows = rowsSelect.value;
+        }
+        if (stackedCheckbox && stackedCheckbox.checked) {
+          opts.stacked = true;
+        }
+        return opts;
+      }
+
       if (form && input) {
         form.addEventListener("submit", function (e) {
           e.preventDefault();
           var q = input.value.trim();
           if (!q) return;
-          var url = StegStubHub.buildSearchUrl(q);
+          var opts = buildOpts();
+          var url = StegStubHub.buildSearchUrl(q, opts);
           window.open(url, "_blank", "noopener");
         });
       }
 
-      // quick buttons
+      // quick buttons (no group info, but can be extended later)
       var quickLinks = document.querySelectorAll(".cfp-stubhub-quick");
       quickLinks.forEach(function (btn) {
         btn.addEventListener("click", function (e) {
