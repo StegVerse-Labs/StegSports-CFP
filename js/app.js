@@ -1,7 +1,20 @@
-// [SCFP-APP v1] lines≈200
-// Public CFP pages for StegSports.
-
+// [SCFP-APP v1] CFP public pages for StegSports.
 const StegCFP = (function () {
+  const AB_STORAGE_KEY = "steg_cfp_ab_variant";
+
+  function getABVariant() {
+    try {
+      const existing = window.localStorage.getItem(AB_STORAGE_KEY);
+      if (existing === "A" || existing === "B") return existing;
+      const assigned = Math.random() < 0.5 ? "A" : "B";
+      window.localStorage.setItem(AB_STORAGE_KEY, assigned);
+      return assigned;
+    } catch (e) {
+      // If localStorage blocked, random each time
+      return Math.random() < 0.5 ? "A" : "B";
+    }
+  }
+
   async function loadJSON(path) {
     const resp = await fetch(path, { cache: "no-cache" });
     if (!resp.ok) {
@@ -13,6 +26,31 @@ const StegCFP = (function () {
   function setYear() {
     const els = document.querySelectorAll("#cfp-year");
     els.forEach(el => (el.textContent = new Date().getFullYear()));
+  }
+
+  function withABParams(url, partner, variant, teamId, gameId) {
+    try {
+      const u = new URL(url);
+      u.searchParams.set("src", "stegcfp");
+      u.searchParams.set("variant", variant);
+      u.searchParams.set("partner", partner);
+      if (teamId) u.searchParams.set("team", teamId);
+      if (gameId) u.searchParams.set("game", gameId);
+      return u.toString();
+    } catch (e) {
+      return url;
+    }
+  }
+
+  // ---------- Helpers for data ----------
+
+  function findTeam(teamsData, teamId) {
+    return (teamsData.teams || []).find(t => t.id === teamId);
+  }
+
+  function findGame(team, gameId) {
+    if (!team || !team.games) return null;
+    return team.games.find(g => g.id === gameId);
   }
 
   // ---------- Overview page ----------
@@ -27,6 +65,7 @@ const StegCFP = (function () {
       ]);
 
       renderRankingsTable(rankings, teams);
+
       const meta = document.getElementById("cfp-last-updated");
       if (meta && rankings.last_updated) {
         const dt = new Date(rankings.last_updated);
@@ -35,26 +74,18 @@ const StegCFP = (function () {
     } catch (err) {
       console.error(err);
       const table = document.getElementById("cfp-rankings-table");
-      if (table) {
+      if (table && table.tBodies[0]) {
         table.tBodies[0].innerHTML =
           `<tr><td colspan="7">Unable to load rankings.</td></tr>`;
       }
     }
   }
 
-  function findTeam(teamsData, teamId) {
-    return teamsData.teams.find(t => t.id === teamId);
-  }
-
-  function findGame(team, gameId) {
-    if (!team || !team.games) return null;
-    return team.games.find(g => g.id === gameId);
-  }
-
   function renderRankingsTable(rankings, teamsData) {
     const tbody = document.querySelector("#cfp-rankings-table tbody");
     if (!tbody) return;
 
+    const variant = getABVariant(); // "A" or "B"
     tbody.innerHTML = "";
 
     (rankings.top_12 || []).forEach(entry => {
@@ -68,7 +99,7 @@ const StegCFP = (function () {
       tdRank.textContent = entry.rank;
       tr.appendChild(tdRank);
 
-      // team
+      // team (link to team page)
       const tdTeam = document.createElement("td");
       const link = document.createElement("a");
       link.href = `team.html?team=${encodeURIComponent(entry.team_id)}`;
@@ -104,22 +135,81 @@ const StegCFP = (function () {
       }
       tr.appendChild(tdNext);
 
-      // tickets
+      // tickets (A/B between SeatGeek & StubHub)
       const tdTickets = document.createElement("td");
-      const btn = document.createElement("a");
       const query =
         (game && game.seatgeek_query_override) ||
         (team && team.seatgeek_query) ||
         entry.name + " football";
 
-      btn.href = StegSeatGeek.buildEventUrl(query);
-      btn.target = "_blank";
-      btn.rel = "noopener noreferrer";
-      btn.className = "cfp-btn";
-      btn.textContent = "Find tickets";
-      tdTickets.appendChild(btn);
-      tr.appendChild(tdTickets);
+      let primaryPartner, secondaryPartner;
+      if (variant === "A") {
+        primaryPartner = "seatgeek";
+        secondaryPartner = "stubhub";
+      } else {
+        primaryPartner = "stubhub";
+        secondaryPartner = "seatgeek";
+      }
 
+      // primary button
+      const primaryBtn = document.createElement("a");
+      primaryBtn.className = "cfp-btn";
+      primaryBtn.target = "_blank";
+      primaryBtn.rel = "noopener noreferrer";
+
+      if (primaryPartner === "seatgeek") {
+        primaryBtn.href = withABParams(
+          StegSeatGeek.buildEventUrl(query),
+          primaryPartner,
+          variant,
+          entry.team_id,
+          game && game.id
+        );
+        primaryBtn.textContent = "SeatGeek";
+      } else {
+        primaryBtn.href = withABParams(
+          StegStubHub.buildEventUrl(query),
+          primaryPartner,
+          variant,
+          entry.team_id,
+          game && game.id
+        );
+        primaryBtn.textContent = "StubHub";
+      }
+
+      tdTickets.appendChild(primaryBtn);
+
+      // secondary link
+      const secondaryLink = document.createElement("a");
+      secondaryLink.className = "cfp-secondary-link";
+      secondaryLink.style.marginLeft = "0.4rem";
+      secondaryLink.style.fontSize = "0.75rem";
+      secondaryLink.target = "_blank";
+      secondaryLink.rel = "noopener noreferrer";
+
+      if (secondaryPartner === "seatgeek") {
+        secondaryLink.href = withABParams(
+          StegSeatGeek.buildEventUrl(query),
+          secondaryPartner,
+          variant,
+          entry.team_id,
+          game && game.id
+        );
+        secondaryLink.textContent = "SeatGeek";
+      } else {
+        secondaryLink.href = withABParams(
+          StegStubHub.buildEventUrl(query),
+          secondaryPartner,
+          variant,
+          entry.team_id,
+          game && game.id
+        );
+        secondaryLink.textContent = "StubHub";
+      }
+
+      tdTickets.appendChild(secondaryLink);
+
+      tr.appendChild(tdTickets);
       tbody.appendChild(tr);
     });
   }
@@ -179,6 +269,7 @@ const StegCFP = (function () {
     const tbody = document.querySelector("#team-games-table tbody");
     if (!tbody) return;
 
+    const variant = getABVariant();
     tbody.innerHTML = "";
 
     (team.games || []).forEach(game => {
@@ -201,20 +292,73 @@ const StegCFP = (function () {
       tr.appendChild(tdImpact);
 
       const tdTickets = document.createElement("td");
-      const a = document.createElement("a");
+      const primaryPartner = variant === "A" ? "seatgeek" : "stubhub";
+      const secondaryPartner = variant === "A" ? "stubhub" : "seatgeek";
+
       const query =
         game.seatgeek_query_override ||
         team.seatgeek_query ||
         `${team.name} vs ${game.opponent}`;
 
-      a.href = StegSeatGeek.buildEventUrl(query);
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.className = "cfp-btn";
-      a.textContent = "Find tickets";
-      tdTickets.appendChild(a);
-      tr.appendChild(tdTickets);
+      // primary
+      const primary = document.createElement("a");
+      primary.className = "cfp-btn";
+      primary.target = "_blank";
+      primary.rel = "noopener noreferrer";
 
+      if (primaryPartner === "seatgeek") {
+        primary.href = withABParams(
+          StegSeatGeek.buildEventUrl(query),
+          primaryPartner,
+          variant,
+          team.id,
+          game.id
+        );
+        primary.textContent = "SeatGeek";
+      } else {
+        primary.href = withABParams(
+          StegStubHub.buildEventUrl(query),
+          primaryPartner,
+          variant,
+          team.id,
+          game.id
+        );
+        primary.textContent = "StubHub";
+      }
+
+      tdTickets.appendChild(primary);
+
+      // secondary
+      const secondary = document.createElement("a");
+      secondary.className = "cfp-secondary-link";
+      secondary.style.marginLeft = "0.4rem";
+      secondary.style.fontSize = "0.75rem";
+      secondary.target = "_blank";
+      secondary.rel = "noopener noreferrer";
+
+      if (secondaryPartner === "seatgeek") {
+        secondary.href = withABParams(
+          StegSeatGeek.buildEventUrl(query),
+          secondaryPartner,
+          variant,
+          team.id,
+          game.id
+        );
+        secondary.textContent = "SeatGeek";
+      } else {
+        secondary.href = withABParams(
+          StegStubHub.buildEventUrl(query),
+          secondaryPartner,
+          variant,
+          team.id,
+          game.id
+        );
+        secondary.textContent = "StubHub";
+      }
+
+      tdTickets.appendChild(secondary);
+
+      tr.appendChild(tdTickets);
       tbody.appendChild(tr);
     });
 
@@ -226,6 +370,7 @@ const StegCFP = (function () {
 
   return {
     initOverviewPage,
-    initTeamPage
+    initTeamPage,
+    getABVariant
   };
 })();
