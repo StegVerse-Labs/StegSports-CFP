@@ -1,95 +1,105 @@
+# seatgeek_client.py
+# v2025-12-02-01 — SeatGeek application-only client
+from __future__ import annotations
+
 import os
 from typing import Any, Dict, List, Optional
 
 import httpx
 
-# ---------------------------------------------------------
-# SeatGeek client (application-only style)
-#
-# This is intentionally thin and conservative. It assumes the
-# classic pattern where SeatGeek accepts client_id/client_secret
-# as query parameters. Once you have final docs from SeatGeek,
-# you can adjust AUTH_MODE / params in one place.
-# ---------------------------------------------------------
-
-SEATGEEK_BASE_URL = os.getenv("SEATGEEK_BASE_URL", "https://api.seatgeek.com/2")
-SEATGEEK_CLIENT_ID = os.getenv("SEATGEEK_CLIENT_ID", "")
-SEATGEEK_CLIENT_SECRET = os.getenv("SEATGEEK_CLIENT_SECRET", "")
-
-# In case SeatGeek requires a different scheme later (e.g. OAuth),
-# you can switch this flag and centralize the change here.
-SEATGEEK_AUTH_MODE = os.getenv("SEATGEEK_AUTH_MODE", "query")  # "query" | "none" | "header"
+SEATGEEK_CLIENT_ID = os.getenv("SEATGEEK_CLIENT_ID")
+SEATGEEK_BASE_URL = "https://api.seatgeek.com/2"
 
 
-def _auth_params() -> Dict[str, str]:
+class SeatGeekConfigError(RuntimeError):
+    pass
+
+
+class SeatGeekAPIError(RuntimeError):
+    pass
+
+
+def _require_config() -> None:
+    if not SEATGEEK_CLIENT_ID:
+        raise SeatGeekConfigError(
+            "SEATGEEK_CLIENT_ID is not set. "
+            "Configure it in your Render environment for the API service."
+        )
+
+
+async def search_events(
+    *,
+    query: Optional[str] = None,
+    city: Optional[str] = None,
+    state: Optional[str] = None,
+    lat: Optional[float] = None,
+    lon: Optional[float] = None,
+    radius_miles: Optional[int] = None,
+    per_page: int = 20,
+) -> List[Dict[str, Any]]:
     """
-    Build authentication parameters for SeatGeek requests.
-    Adjust this once you know the exact requirements.
+    Thin wrapper around SeatGeek events endpoint.
+
+    We only use a small, normalized subset of fields so that the rest of
+    the SCW code doesn't care which provider the results came from.
     """
-    if SEATGEEK_AUTH_MODE == "query":
-        params: Dict[str, str] = {}
-        if SEATGEEK_CLIENT_ID:
-            params["client_id"] = SEATGEEK_CLIENT_ID
-        if SEATGEEK_CLIENT_SECRET:
-            params["client_secret"] = SEATGEEK_CLIENT_SECRET
-        return params
-    # Placeholder for future header-based auth, if needed.
-    return {}
+    _require_config()
 
-
-async def search_events(query: str, per_page: int = 5) -> List[Dict[str, Any]]:
-    """
-    Search SeatGeek events by free-text query.
-
-    This is used to map CFP-style "Big 12 Championship" or
-    "Texas Tech vs Oklahoma" into a concrete SeatGeek event.
-
-    Returns a list of raw event dicts (no schema enforced here).
-    """
-    if not SEATGEEK_CLIENT_ID and SEATGEEK_AUTH_MODE == "query":
-        # Not configured yet; fail soft so the API can respond with a clear message.
-        return []
-
-    base = SEATGEEK_BASE_URL.rstrip("/")
-    url = f"{base}/events"
     params: Dict[str, Any] = {
-        "q": query,
+        "client_id": SEATGEEK_CLIENT_ID,
         "per_page": per_page,
     }
-    params.update(_auth_params())
 
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.get(url, params=params)
-        resp.raise_for_status()
-        data = resp.json()
+    if query:
+        params["q"] = query
 
-    events = data.get("events") or data.get("results") or []
-    # Normalize to a list
-    if not isinstance(events, list):
-        return []
-    return events
+    if city:
+        params["venue.city"] = city
+    if state:
+        params["venue.state"] = state
+
+    if lat is not None and lon is not None:
+        params["lat"] = lat
+        params["lon"] = lon
+        if radius_miles is not None:
+            params["range"] = f"{radius_miles}mi"
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(f"{SEATGEEK_BASE_URL}/events", params=params)
+
+    if resp.status_code != 200:
+        raise SeatGeekAPIError(
+            f"SeatGeek API error {resp.status_code}: {resp.text[:200]}"
+        )
+
+    data = resp.json()
+    events = data.get("events", []) or []
+    return [_normalize_event(e) for e in events]
 
 
-async def get_event(event_id: str) -> Optional[Dict[str, Any]]:
+def _normalize_event(raw: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Fetch a single SeatGeek event by ID.
-
-    Once you have actual SeatGeek docs, you may want to adjust
-    the endpoint path or how inventory is accessed.
+    Map SeatGeek's event schema into a compact, provider-agnostic format.
     """
-    if not SEATGEEK_CLIENT_ID and SEATGEEK_AUTH_MODE == "query":
-        return None
+    venue = raw.get("venue") or {}
+    stats = raw.get("stats") or {}
 
-    base = SEATGEEK_BASE_URL.rstrip("/")
-    url = f"{base}/events/{event_id}"
-    params = _auth_params()
-
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.get(url, params=params)
-        resp.raise_for_status()
-        data = resp.json()
-
-    # Some SeatGeek APIs wrap the event inside a top-level "event" field.
-    if "event" in data and isinstance(data["event"], dict):
-        return data["event"]
-    return data
+    return {
+        "provider": "seatgeek",
+        "id": str(raw.get("id")),
+        "title": raw.get("title"),
+        "datetime_local": raw.get("datetime_local"),
+        "url": raw.get("url"),
+        "venue": {
+            "name": venue.get("name"),
+            "city": venue.get("city"),
+            "state": venue.get("state"),
+            "country": venue.get("country"),
+        },
+        "pricing": {
+            "lowest_price": stats.get("lowest_price"),
+            "lowest_price_good_deals": stats.get("lowest_price_good_deals"),
+        },
+        # Placeholder for seat-level info; SeatGeek doesn't expose that in this endpoint
+        "seatmeta": None,
+    }
