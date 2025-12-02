@@ -190,6 +190,8 @@ body.cfp-body {
   font-weight: 600;
 }
 
+/* Chips & buttons */
+
 .cfp-chip {
   display: inline-flex;
   align-items: center;
@@ -204,8 +206,6 @@ body.cfp-body {
   border-color: var(--cfp-accent);
   color: var(--cfp-primary);
 }
-
-/* Buttons */
 
 .cfp-btn {
   display: inline-flex;
@@ -224,6 +224,17 @@ body.cfp-body {
 
 .cfp-btn:hover {
   filter: brightness(0.97);
+}
+
+/* Secondary link (for A/B secondary marketplace) */
+
+.cfp-secondary-link {
+  color: var(--cfp-text-muted);
+  text-decoration: none;
+}
+
+.cfp-secondary-link:hover {
+  text-decoration: underline;
 }
 
 /* Cards */
