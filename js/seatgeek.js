@@ -1,7 +1,6 @@
 // [SCFP-SEATGEEK v1]
-//
 // Simple helper for constructing SeatGeek affiliate links.
-// Replace SEATGEEK_AFFILIATE_ID with your real affiliate ID from their program.
+// Replace SEATGEEK_AFFILIATE_ID with your real affiliate ID.
 
 const StegSeatGeek = (function () {
   const AFFILIATE_ID = "YOUR_SEATGEEK_AFFILIATE_ID"; // TODO: set real value
@@ -17,7 +16,7 @@ const StegSeatGeek = (function () {
   }
 
   function buildEventUrl(slugOrQuery) {
-    // If you later know exact event slugs, you can switch to /events/<slug>
+    // For now, just treat slugOrQuery as a search term.
     return buildSearchUrl(slugOrQuery);
   }
 
