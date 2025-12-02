@@ -1,0 +1,44 @@
+{
+  "teams": [
+    {
+      "id": "TTU",
+      "name": "Texas Tech",
+      "short": "TTU",
+      "conference": "Big 12",
+      "record": "11-1",
+      "primary_color": "#CC0000",
+      "seatgeek_query": "Texas Tech Red Raiders football",
+      "games": [
+        {
+          "id": "TTU_B12_TITLE",
+          "label": "Big 12 Championship",
+          "date": "2025-12-06",
+          "opponent": "Oklahoma State",
+          "location": "AT&T Stadium, Arlington, TX",
+          "importance": "Win and in; near-lock for CFP",
+          "seatgeek_query_override": "Big 12 Championship Arlington"
+        }
+      ]
+    },
+    {
+      "id": "GEORGIA",
+      "name": "Georgia",
+      "short": "UGA",
+      "conference": "SEC",
+      "record": "12-0",
+      "primary_color": "#BA0C2F",
+      "seatgeek_query": "Georgia Bulldogs football",
+      "games": [
+        {
+          "id": "GEORGIA_SEC_TITLE",
+          "label": "SEC Championship",
+          "date": "2025-12-06",
+          "opponent": "Alabama",
+          "location": "Mercedes-Benz Stadium, Atlanta, GA",
+          "importance": "Likely 1-seed on win",
+          "seatgeek_query_override": "SEC Championship Atlanta"
+        }
+      ]
+    }
+  ]
+}
