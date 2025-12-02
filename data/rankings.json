@@ -1,0 +1,32 @@
+{
+  "last_updated": "2025-12-02T13:00:00Z",
+  "top_12": [
+    {
+      "rank": 1,
+      "team_id": "GEORGIA",
+      "name": "Georgia",
+      "record": "12-0",
+      "conference": "SEC",
+      "seed": 1,
+      "next_game_id": "GEORGIA_SEC_TITLE"
+    },
+    {
+      "rank": 2,
+      "team_id": "MICH",
+      "name": "Michigan",
+      "record": "12-0",
+      "conference": "Big Ten",
+      "seed": 2,
+      "next_game_id": "MICH_B1G_TITLE"
+    },
+    {
+      "rank": 3,
+      "team_id": "TTU",
+      "name": "Texas Tech",
+      "record": "11-1",
+      "conference": "Big 12",
+      "seed": 3,
+      "next_game_id": "TTU_B12_TITLE"
+    }
+  ]
+}
