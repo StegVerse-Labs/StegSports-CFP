@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>StubHub CFP Tickets – StegSports</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Find StubHub tickets for CFP games, conference championships, and key college football matchups via StegSports." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="cfp-body">
+  <header class="cfp-header">
+    <div class="cfp-header-inner">
+      <div class="cfp-brand">
+        <span class="cfp-logo-dot"></span>
+        <span class="cfp-logo-text">StegSports CFP</span>
+      </div>
+      <nav class="cfp-nav">
+        <a href="index.html" class="cfp-nav-link">Rankings</a>
+        <a href="projections.html" class="cfp-nav-link cfp-nav-link-disabled">Projections (soon)</a>
+        <a href="scenarios.html" class="cfp-nav-link cfp-nav-link-disabled">Chaos Scenarios (soon)</a>
+        <a href="stubhub.html" class="cfp-nav-link cfp-nav-link-active">StubHub Tickets</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="cfp-main">
+    <section class="cfp-hero">
+      <div class="cfp-hero-text">
+        <h1>StubHub College Football Tickets</h1>
+        <p class="cfp-hero-subtitle">
+          Find seats for CFP games, conference championships, and key regular-season matchups.
+          Searches use our StubHub affiliate links at no extra cost to you.
+        </p>
+      </div>
+    </section>
+
+    <section class="cfp-section">
+      <header class="cfp-section-header">
+        <h2>Quick Search</h2>
+      </header>
+      <div class="cfp-card">
+        <p style="margin-top: 0; font-size: 0.9rem; color: var(--cfp-text-muted);">
+          Type the matchup, bowl name, or team you’re looking for. We’ll open StubHub in a new tab with our affiliate tracking applied.
+        </p>
+        <form id="stubhub-search-form" class="cfp-stubhub-form">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <input
+              type="text"
+              id="stubhub-query"
+              placeholder="e.g. CFP National Championship, Big 12 Championship, Texas Tech vs Oklahoma"
+              style="
+                flex: 1;
+                min-width: 220px;
+                padding: 0.45rem 0.6rem;
+                border-radius: 999px;
+                border: 1px solid var(--cfp-border);
+                font-size: 0.9rem;
+              "
+            />
+            <button type="submit" class="cfp-btn">
+              Search StubHub
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="cfp-section cfp-section-alt">
+      <header class="cfp-section-header">
+        <h2>Popular CFP & Championship Searches</h2>
+      </header>
+      <div class="cfp-grid">
+        <div class="cfp-card">
+          <h3>CFP National Championship</h3>
+          <p>All listings for the national title game.</p>
+          <a
+            href="#"
+            data-stubhub-query="CFP National Championship"
+            class="cfp-btn cfp-stubhub-quick"
+          >
+            View on StubHub
+          </a>
+        </div>
+        <div class="cfp-card">
+          <h3>CFP Semifinals</h3>
+          <p>Orange, Rose, Sugar, Fiesta, Cotton – whichever is hosting this year’s semifinals.</p>
+          <a
+            href="#"
+            data-stubhub-query="College Football Playoff Semifinal"
+            class="cfp-btn cfp-stubhub-quick"
+          >
+            View on StubHub
+          </a>
+        </div>
+        <div class="cfp-card">
+          <h3>Texas Tech Big 12 Championship</h3>
+          <p>Follow the Red Raiders on a Big 12 title run.</p>
+          <a
+            href="#"
+            data-stubhub-query="Big 12 Championship Texas Tech"
+            class="cfp-btn cfp-stubhub-quick"
+          >
+            View on StubHub
+          </a>
+        </div>
+        <div class="cfp-card">
+          <h3>Conference Title Games</h3>
+          <p>SEC, Big Ten, ACC, Big 12 and more.</p>
+          <a
+            href="#"
+            data-stubhub-query="SEC Championship game"
+            class="cfp-btn cfp-stubhub-quick"
+          >
+            View SEC Tickets
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="cfp-footer">
+      <div class="cfp-footer-inner">
+        <p class="cfp-footer-text">
+          © <span id="cfp-year"></span> StegSports.
+          Independent CFP-style analysis. Not affiliated with the official CFP organization.
+        </p>
+      </div>
+    </footer>
+  </main>
+
+  <script src="js/stubhub.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // year
+      var yearEls = document.querySelectorAll("#cfp-year");
+      yearEls.forEach(function (el) {
+        el.textContent = new Date().getFullYear();
+      });
+
+      // form submit
+      var form = document.getElementById("stubhub-search-form");
+      var input = document.getElementById("stubhub-query");
+      if (form && input) {
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          var q = input.value.trim();
+          if (!q) return;
+          var url = StegStubHub.buildSearchUrl(q);
+          window.open(url, "_blank", "noopener");
+        });
+      }
+
+      // quick buttons
+      var quickLinks = document.querySelectorAll(".cfp-stubhub-quick");
+      quickLinks.forEach(function (btn) {
+        btn.addEventListener("click", function (e) {
+          e.preventDefault();
+          var q = btn.getAttribute("data-stubhub-query");
+          if (!q) return;
+          var url = StegStubHub.buildSearchUrl(q);
+          window.open(url, "_blank", "noopener");
+        });
+      });
+    });
+  </script>
+</body>
+</html>
