@@ -39,6 +39,26 @@
           "seatgeek_query_override": "SEC Championship Atlanta"
         }
       ]
+    },
+    {
+      "id": "MICH",
+      "name": "Michigan",
+      "short": "MICH",
+      "conference": "Big Ten",
+      "record": "12-0",
+      "primary_color": "#00274C",
+      "seatgeek_query": "Michigan Wolverines football",
+      "games": [
+        {
+          "id": "MICH_B1G_TITLE",
+          "label": "Big Ten Championship",
+          "date": "2025-12-06",
+          "opponent": "Iowa",
+          "location": "Lucas Oil Stadium, Indianapolis, IN",
+          "importance": "Playoff seeding on the line",
+          "seatgeek_query_override": "Big Ten Championship Indianapolis"
+        }
+      ]
     }
   ]
 }
