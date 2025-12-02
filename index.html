@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CFP Rankings & Projections – StegSports</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Live CFP-style college football playoff rankings, projections, and ticket links powered by StegSports." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="cfp-body">
+  <header class="cfp-header">
+    <div class="cfp-header-inner">
+      <div class="cfp-brand">
+        <span class="cfp-logo-dot"></span>
+        <span class="cfp-logo-text">StegSports CFP</span>
+      </div>
+      <nav class="cfp-nav">
+        <a href="index.html" class="cfp-nav-link cfp-nav-link-active">Rankings</a>
+        <a href="projections.html" class="cfp-nav-link cfp-nav-link-disabled">Projections (soon)</a>
+        <a href="scenarios.html" class="cfp-nav-link cfp-nav-link-disabled">Chaos Scenarios (soon)</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="cfp-main">
+    <section class="cfp-hero">
+      <div class="cfp-hero-text">
+        <h1>College Football Playoff Rankings</h1>
+        <p class="cfp-hero-subtitle">
+          Committee-style presentation. Independent StegSports analytics.  
+          <strong>Tickets available via our official SeatGeek affiliate links.</strong>
+        </p>
+      </div>
+    </section>
+
+    <section class="cfp-section">
+      <header class="cfp-section-header">
+        <h2>Current Top 12</h2>
+        <span class="cfp-section-meta" id="cfp-last-updated"></span>
+      </header>
+
+      <div class="cfp-table-wrapper">
+        <table class="cfp-table" id="cfp-rankings-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Team</th>
+              <th>Record</th>
+              <th>Conf</th>
+              <th>CFP Seed</th>
+              <th>Next Game</th>
+              <th>Tickets</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- filled by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="cfp-section cfp-section-alt">
+      <header class="cfp-section-header">
+        <h2>How to Get Tickets</h2>
+      </header>
+      <div class="cfp-grid">
+        <div class="cfp-card">
+          <h3>1. Pick your game</h3>
+          <p>Find the team and matchup you’re interested in from the rankings table above.</p>
+        </div>
+        <div class="cfp-card">
+          <h3>2. Hit “Find Tickets”</h3>
+          <p>Each game row includes a SeatGeek link with our affiliate tracking automatically applied.</p>
+        </div>
+        <div class="cfp-card">
+          <h3>3. Complete purchase</h3>
+          <p>You’ll complete checkout on SeatGeek. StegSports earns a commission at no extra cost to you.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="cfp-footer">
+      <div class="cfp-footer-inner">
+        <p class="cfp-footer-text">
+          © <span id="cfp-year"></span> StegSports.  
+          Independent CFP-style analysis. Not affiliated with the official College Football Playoff organization.
+        </p>
+      </div>
+    </footer>
+  </main>
+
+  <script src="js/seatgeek.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // Simple boot
+    document.addEventListener("DOMContentLoaded", function () {
+      StegCFP.initOverviewPage();
+    });
+  </script>
+</body>
+</html>
