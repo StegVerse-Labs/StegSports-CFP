@@ -1,111 +1,148 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>CFP Tickets • StegSports</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="/css/style.css" />
-  </head>
-  <body>
-    <div class="page">
-      <header>
-        <h1>College Football Playoff Tickets</h1>
-        <div class="sub">
-          Neutral, multi-market search across SeatGeek &amp; StubHub — with group
-          seating preferences baked in.
-        </div>
-        <div class="badge-row">
-          <span class="badge blue">CFP.StegSports.app (alpha)</span>
-          <span class="badge">Affiliate-supported</span>
-          <span class="badge">A/B split testing</span>
-        </div>
-      </header>
-
-      <main>
-        <section class="card">
-          <h2>Find your game</h2>
-          <form id="cfp-form">
-            <div class="label">Matchup or team</div>
-            <div class="row">
-              <input
-                type="text"
-                name="event_name"
-                placeholder="Texas Tech vs BYU, Rose Bowl, etc."
-                required
-              />
-            </div>
-
-            <div class="row">
-              <div>
-                <div class="label">Location (optional)</div>
-                <input
-                  type="text"
-                  name="location"
-                  placeholder="Glendale, New Orleans, Arlington…"
-                />
-              </div>
-              <div>
-                <div class="label">Date (optional)</div>
-                <input type="text" name="date" placeholder="Jan 20, 2026" />
-              </div>
-            </div>
-
-            <div class="row">
-              <div>
-                <div class="label">Group size</div>
-                <input
-                  type="number"
-                  name="group_size"
-                  value="4"
-                  min="1"
-                  inputmode="numeric"
-                />
-              </div>
-              <div>
-                <div class="label">Max rows to split across</div>
-                <input
-                  type="number"
-                  name="max_rows"
-                  value="2"
-                  min="1"
-                  inputmode="numeric"
-                />
-              </div>
-            </div>
-
-            <div class="row">
-              <div>
-                <div class="label">Provider preference</div>
-                <select id="provider" name="provider">
-                  <option value="auto">Auto (A/B test)</option>
-                  <option value="seatGeek">Prefer SeatGeek</option>
-                  <option value="stubHub">Prefer StubHub</option>
-                </select>
-              </div>
-            </div>
-
-            <button type="submit" id="cfp-submit" class="primary">
-              Search tickets
-            </button>
-          </form>
-        </section>
-
-        <section class="card">
-          <h2>Links &amp; buckets</h2>
-          <div id="results">
-            <div class="result-provider">
-              Enter a matchup and we’ll build affiliate links on your behalf.
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <footer>
-        Prices, availability, and seating accuracy are provided by the ticket
-        marketplaces. StegSports never touches your payment details.
-      </footer>
+<head>
+  <meta charset="UTF-8" />
+  <title>CFP · StegSports</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    body {
+      background: #050816;
+      color: #f9fafb;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+    .top-nav {
+      margin-bottom: 16px;
+      font-size: 0.8rem;
+    }
+    .top-nav a {
+      margin-right: 12px;
+      color: #9ca3af;
+      text-decoration: none;
+    }
+    .top-nav a.active {
+      color: #f9fafb;
+      font-weight: 600;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      margin: 0 0 0.25rem;
+    }
+    header p {
+      margin: 0 0 1.5rem;
+      color: #9ca3af;
+      font-size: 0.9rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .game-card {
+      background: #0b1020;
+      border-radius: 14px;
+      padding: 14px 16px;
+      border: 1px solid #111827;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+    }
+    .game-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .game-meta {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 6px;
+    }
+    .teams {
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+    .teams span {
+      display: inline-block;
+      margin-right: 4px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      background: #111827;
+      color: #e5e7eb;
+      margin-right: 4px;
+    }
+    .pill.campaign {
+      background: #1e40af;
+      color: #bfdbfe;
+    }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .btn-primary {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: none;
+      background: #2563eb;
+      color: #f9fafb;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .btn-ghost {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid #374151;
+      background: transparent;
+      color: #e5e7eb;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .muted {
+      color: #6b7280;
+      font-size: 0.8rem;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="top-nav">
+      <a href="index.html" class="active">Bracket</a>
+      <a href="tickets.html">Tickets</a>
+      <a href="dashboard.html">Affiliate</a>
     </div>
 
-    <script type="module" src="/js/seatgeek.js"></script>
-  </body>
+    <header>
+      <h1>College Football Playoff · StegSports</h1>
+      <p>
+        Tap any game to jump straight into tickets with the correct
+        <span class="muted">Partnerize campaign_id</span> wired in.
+      </p>
+    </header>
+
+    <section class="grid" id="games-grid">
+      <!-- Cards are rendered via js/index.js -->
+    </section>
+
+    <p class="muted">
+      Note: campaign IDs are visible here for debugging so you can verify
+      which game is mapped to which Partnerize campaign.
+    </p>
+  </div>
+
+  <script src="js/index.js"></script>
+</body>
 </html>
