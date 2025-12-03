@@ -1,17 +1,30 @@
 // js/dashboard.js
-// [CFP-DASHBOARD v2025-12-03-01]
+// [CFP-DASHBOARD v2025-12-03-02]
 
-const SCW_API_BASE = "https://scw-api.onrender.com"; // change here if needed
+const SCW_API_BASE =
+  (typeof window !== "undefined" && window.CFP_API_BASE) ||
+  "https://scw-api.onrender.com";
 
-async function fetchJSON(path) {
-  const url = `${SCW_API_BASE}${path}`;
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
+async function fetchJSON(path, params) {
+  const url = new URL(SCW_API_BASE + path);
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") {
+        url.searchParams.set(k, String(v));
+      }
+    });
+  }
+  const res = await fetch(url.toString(), {
+    headers: { Accept: "application/json" },
+  });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`HTTP ${res.status}: ${text}`);
   }
   return res.json();
 }
+
+// ---------------- Partnerize status ----------------
 
 async function loadStatus() {
   const pill = document.getElementById("status-pill");
@@ -56,6 +69,8 @@ async function loadStatus() {
     err.style.display = "block";
   }
 }
+
+// ---------------- Partnerize networks ----------------
 
 async function loadNetworks() {
   const meta = document.getElementById("networks-meta");
@@ -102,7 +117,73 @@ async function loadNetworks() {
   }
 }
 
+// ---------------- Ticket click summary ----------------
+
+function computeShare(count, total) {
+  if (!total || total <= 0) return "0%";
+  const pct = (count / total) * 100;
+  return `${pct.toFixed(1)}%`;
+}
+
+async function loadClicks() {
+  const meta = document.getElementById("clicks-meta");
+  const table = document.getElementById("clicks-table");
+  const body = document.getElementById("clicks-body");
+
+  meta.textContent = "Loading…";
+  table.style.display = "none";
+  body.innerHTML = "";
+
+  try {
+    const data = await fetchJSON("/v1/tickets/clicks/summary", { limit: 200 });
+
+    const total = data.total_clicks || 0;
+    const window = data.window || {};
+    const byProvider = data.by_provider || {};
+
+    let windowText = "";
+    if (window.start_ts && window.end_ts) {
+      const start = new Date(window.start_ts * 1000);
+      const end = new Date(window.end_ts * 1000);
+      windowText = ` · window: ${start.toISOString()} → ${end.toISOString()}`;
+    }
+
+    meta.textContent = `Total logged clicks (last ${
+      data.limit ?? 200
+    }): ${total}${windowText}`;
+
+    const providers = Object.keys(byProvider).sort();
+    providers.forEach((name) => {
+      const count = byProvider[name] || 0;
+
+      const tr = document.createElement("tr");
+
+      const tdProv = document.createElement("td");
+      tdProv.textContent = name;
+      tr.appendChild(tdProv);
+
+      const tdCount = document.createElement("td");
+      tdCount.textContent = String(count);
+      tr.appendChild(tdCount);
+
+      const tdShare = document.createElement("td");
+      tdShare.textContent = computeShare(count, total);
+      tr.appendChild(tdShare);
+
+      body.appendChild(tr);
+    });
+
+    table.style.display = "table";
+  } catch (e) {
+    meta.textContent = `Error loading clicks: ${e}`;
+    table.style.display = "none";
+  }
+}
+
+// ---------------- Init ----------------
+
 document.addEventListener("DOMContentLoaded", () => {
   loadStatus();
   loadNetworks();
+  loadClicks();
 });
