@@ -1,9 +1,32 @@
 // js/dashboard.js
-// [CFP-DASHBOARD v2025-12-03-07]
+// [CFP-DASHBOARD v2025-12-03-10]
 
 const SCW_API_BASE =
   (typeof window !== "undefined" && window.CFP_API_BASE) ||
   "https://scw-api.onrender.com";
+
+// Mapping Partnerize campaign_id → CFP game metadata
+// Keep this in sync with js/index.js CFP_GAMES.
+const CAMPAIGN_META = {
+  "CFP-ROSE-2025": {
+    gameLabel: "Rose Bowl Semifinal",
+    eventName: "Rose Bowl CFP Semifinal · Team 1 vs Team 4",
+    groupSize: 4,
+    maxRows: 2,
+  },
+  "CFP-SUGAR-2025": {
+    gameLabel: "Sugar Bowl Semifinal",
+    eventName: "Sugar Bowl CFP Semifinal · Team 2 vs Team 3",
+    groupSize: 4,
+    maxRows: 2,
+  },
+  "CFP-TITLE-2025": {
+    gameLabel: "CFP National Championship",
+    eventName: "College Football Playoff National Championship",
+    groupSize: 4,
+    maxRows: 2,
+  },
+};
 
 // In-memory snapshot of merged affiliate data for export
 let AFFILIATE_EXPORT = {
@@ -267,7 +290,14 @@ async function loadClicks() {
       const currency = stats.currency || "USD";
       const rpc = computeRpc(rev, clicks);
 
+      const metaInfo = CAMPAIGN_META[cid] || {};
+      const gameLabel = metaInfo.gameLabel || "";
+
       const tr = document.createElement("tr");
+
+      const tdGame = document.createElement("td");
+      tdGame.textContent = gameLabel || "—";
+      tr.appendChild(tdGame);
 
       const tdCamp = document.createElement("td");
       tdCamp.textContent = label;
@@ -290,11 +320,35 @@ async function loadClicks() {
       tdRpc.textContent = rpc === "—" ? "—" : `${rpc} / click`;
       tr.appendChild(tdRpc);
 
+      const tdActions = document.createElement("td");
+      if (label !== "(none)") {
+        const a = document.createElement("a");
+        a.className = "link-btn";
+        a.textContent = "Tickets";
+        const params = new URLSearchParams();
+        if (metaInfo.eventName) {
+          params.set("event_name", metaInfo.eventName);
+        }
+        params.set("campaign_id", cid);
+        if (metaInfo.groupSize) {
+          params.set("group_size", String(metaInfo.groupSize));
+        }
+        if (metaInfo.maxRows) {
+          params.set("max_rows", String(metaInfo.maxRows));
+        }
+        a.href = `tickets.html?${params.toString()}`;
+        tdActions.appendChild(a);
+      } else {
+        tdActions.textContent = "—";
+      }
+      tr.appendChild(tdActions);
+
       bodyCamp.appendChild(tr);
 
       // collect for CSV
       exportRows.push({
         campaign_id: cid,
+        game_label: gameLabel || null,
         clicks,
         conversions: conv,
         revenue: rev,
@@ -315,7 +369,7 @@ async function loadClicks() {
       },
     };
     exportMeta.textContent =
-      "CSV is ready — includes one row per campaign with clicks, conversions, and revenue.";
+      "CSV is ready — includes one row per campaign with game, clicks, conversions, and revenue.";
   } catch (e) {
     meta.textContent = `Error loading clicks: ${e}`;
     tableProv.style.display = "none";
@@ -346,6 +400,7 @@ function buildCsvFromExport() {
 
   const header = [
     "campaign_id",
+    "game_label",
     "clicks",
     "conversions",
     "revenue",
@@ -367,6 +422,7 @@ function buildCsvFromExport() {
   rows.forEach((r) => {
     const line = [
       escapeCsvField(r.campaign_id),
+      escapeCsvField(r.game_label),
       escapeCsvField(r.clicks),
       escapeCsvField(r.conversions),
       escapeCsvField(r.revenue),
@@ -410,7 +466,7 @@ function downloadCsv() {
     URL.revokeObjectURL(url);
 
     exportMeta.textContent =
-      "CSV downloaded — you can send this straight to sponsors or drop into Sheets/Excel.";
+      "CSV downloaded — includes game names, so you can hand it straight to sponsors.";
   } finally {
     btn.disabled = false;
   }
