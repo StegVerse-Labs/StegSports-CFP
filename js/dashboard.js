@@ -1,5 +1,5 @@
 // js/dashboard.js
-// [CFP-DASHBOARD v2025-12-03-10]
+// [CFP-DASHBOARD v2025-12-03-14]
 
 const SCW_API_BASE =
   (typeof window !== "undefined" && window.CFP_API_BASE) ||
@@ -51,6 +51,14 @@ async function fetchJSON(path, params) {
     throw new Error(`HTTP ${res.status}: ${text}`);
   }
   return res.json();
+}
+
+function getSelectedDays() {
+  const sel = document.getElementById("window-select");
+  if (!sel) return 30;
+  const v = Number(sel.value || 30);
+  if (!Number.isFinite(v) || v <= 0) return 30;
+  return v;
 }
 
 // ---------------- Partnerize status ----------------
@@ -185,7 +193,9 @@ async function loadClicks() {
   const bodyCamp = document.getElementById("clicks-body-campaign");
   const exportMeta = document.getElementById("export-meta");
 
-  meta.textContent = "Loading…";
+  const days = getSelectedDays();
+
+  meta.textContent = `Loading… (conversions: last ${days} days)`;
   tableProv.style.display = "none";
   tableCamp.style.display = "none";
   bodyProv.innerHTML = "";
@@ -215,7 +225,7 @@ async function loadClicks() {
 
     meta.textContent = `Total logged clicks (last ${
       clickData.limit ?? 200
-    }): ${total}${windowText}`;
+    }): ${total}${windowText} · conversions window: last ${days} days`;
 
     // Providers table
     const providers = Object.keys(byProvider).sort();
@@ -250,12 +260,12 @@ async function loadClicks() {
       return;
     }
 
-    // 3) Fetch Partnerize conversions for those campaigns
+    // 3) Fetch Partnerize conversions for those campaigns with the selected window
     let convData;
     try {
       convData = await fetchJSON("/v1/partnerize/conversions/summary", {
         campaign_ids: campaignIds.join(","),
-        days: 30,
+        days,
       });
     } catch (e) {
       // If conversions call fails, at least show click counts
@@ -365,11 +375,12 @@ async function loadClicks() {
         total_clicks: total,
         click_window: window,
         conv_window: convWindow,
+        conv_window_days: days,
         generated_at: new Date().toISOString(),
       },
     };
     exportMeta.textContent =
-      "CSV is ready — includes one row per campaign with game, clicks, conversions, and revenue.";
+      "CSV is ready — includes one row per campaign with game, clicks, conversions, and revenue for the selected window.";
   } catch (e) {
     meta.textContent = `Error loading clicks: ${e}`;
     tableProv.style.display = "none";
@@ -409,6 +420,7 @@ function buildCsvFromExport() {
     "generated_at",
     "click_window_start_ts",
     "click_window_end_ts",
+    "conv_window_days",
     "conv_window_start_date",
     "conv_window_end_date",
   ];
@@ -431,6 +443,7 @@ function buildCsvFromExport() {
       escapeCsvField(meta.generated_at || ""),
       escapeCsvField(clickWindow.start_ts || ""),
       escapeCsvField(clickWindow.end_ts || ""),
+      escapeCsvField(meta.conv_window_days || ""),
       escapeCsvField(convWindow.start_date || ""),
       escapeCsvField(convWindow.end_date || ""),
     ].join(",");
@@ -466,7 +479,7 @@ function downloadCsv() {
     URL.revokeObjectURL(url);
 
     exportMeta.textContent =
-      "CSV downloaded — includes game names, so you can hand it straight to sponsors.";
+      "CSV downloaded — includes game names and the selected conversions window.";
   } finally {
     btn.disabled = false;
   }
@@ -476,8 +489,21 @@ function downloadCsv() {
 
 document.addEventListener("DOMContentLoaded", () => {
   const exportBtn = document.getElementById("export-btn");
+  const windowSelect = document.getElementById("window-select");
+  const refreshBtn = document.getElementById("refresh-btn");
+
   if (exportBtn) {
     exportBtn.addEventListener("click", downloadCsv);
+  }
+  if (windowSelect) {
+    windowSelect.addEventListener("change", () => {
+      loadClicks();
+    });
+  }
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      loadClicks();
+    });
   }
 
   loadStatus();
