@@ -1,5 +1,5 @@
 # api/app/routes_tickets.py
-# [CFP-TICKETS-ROUTES v2025-12-03-02]
+# [CFP-TICKETS-ROUTES v2025-12-03-03]
 
 import os
 import time
@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
-
 from urllib.parse import urlencode
 
 router = APIRouter(tags=["tickets"])
@@ -27,7 +26,7 @@ STUBHUB_AFFILIATE_TAG = os.getenv("STUBHUB_AFFILIATE_TAG", "")
 # Split test config: percentage of traffic that gets SeatGeek as *primary*
 SPLIT_SEATGEEK_PERCENT = int(os.getenv("SPLIT_TEST_SEATGEEK_PERCENT", "50"))
 
-# Mode: "auto" | "seatGeek" | "stubHub"
+# Mode: "auto" | "seatgeek" | "stubhub"
 PRIMARY_MODE = os.getenv("CFP_PRIMARY_MODE", "auto").lower()
 
 # In-memory click log (rotating)
@@ -137,16 +136,18 @@ async def tickets_search(
     sh_url = _build_stubhub_url(event_name, group_size, max_rows)
 
     # Relative click URLs – front-end will prepend its API base
-    sg_click = "/v1/tickets/click?provider=seatGeek&" + urlencode(
+    sg_click = "/v1/tickets/click?" + urlencode(
         {
+            "provider": "seatGeek",
             "event_name": event_name,
             "group_size": group_size or "",
             "max_rows": max_rows or "",
             "bucket": primary if primary == "seatGeek" else "secondary",
         }
     )
-    sh_click = "/v1/tickets/click?provider=stubHub&" + urlencode(
+    sh_click = "/v1/tickets/click?" + urlencode(
         {
+            "provider": "stubHub",
             "event_name": event_name,
             "group_size": group_size or "",
             "max_rows": max_rows or "",
@@ -244,4 +245,52 @@ async def recent_clicks(limit: int = Query(50, ge=1, le=200)) -> Dict[str, Any]:
         "ok": True,
         "limit": limit,
         "items": _CLICK_LOG[:limit],
+    }
+
+
+# -------------------------------------------------------------------
+# Aggregated summary for dashboard
+# -------------------------------------------------------------------
+
+
+@router.get("/clicks/summary", summary="Aggregated click summary (for dashboard)")
+async def clicks_summary(limit: int = Query(200, ge=1, le=_MAX_CLICKS)) -> Dict[str, Any]:
+    """
+    Summarise the last N clicks by provider and bucket.
+
+    This is intentionally rough but good enough for quick analytics:
+    - total_clicks
+    - counts by provider (seatGeek / stubHub / unknown)
+    - counts by bucket (seatGeek / stubHub / secondary / unknown)
+    - time window (unix ts)
+    """
+    items = _CLICK_LOG[:limit]
+    total = len(items)
+
+    by_provider: Dict[str, int] = {}
+    by_bucket: Dict[str, int] = {}
+    timestamps: List[int] = []
+
+    for e in items:
+        p = (e.get("provider") or "unknown").lower()
+        b = (e.get("bucket") or "unknown").lower()
+        by_provider[p] = by_provider.get(p, 0) + 1
+        by_bucket[b] = by_bucket.get(b, 0) + 1
+
+        ts = e.get("ts")
+        if isinstance(ts, (int, float)):
+            timestamps.append(int(ts))
+
+    window: Dict[str, Optional[int]] = {
+        "start_ts": min(timestamps) if timestamps else None,
+        "end_ts": max(timestamps) if timestamps else None,
+    }
+
+    return {
+        "ok": True,
+        "limit": limit,
+        "total_clicks": total,
+        "window": window,
+        "by_provider": by_provider,
+        "by_bucket": by_bucket,
     }
