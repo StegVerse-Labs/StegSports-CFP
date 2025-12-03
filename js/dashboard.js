@@ -1,5 +1,5 @@
 // js/dashboard.js
-// [CFP-DASHBOARD v2025-12-03-02]
+// [CFP-DASHBOARD v2025-12-03-03]
 
 const SCW_API_BASE =
   (typeof window !== "undefined" && window.CFP_API_BASE) ||
@@ -127,12 +127,16 @@ function computeShare(count, total) {
 
 async function loadClicks() {
   const meta = document.getElementById("clicks-meta");
-  const table = document.getElementById("clicks-table");
-  const body = document.getElementById("clicks-body");
+  const tableProv = document.getElementById("clicks-table-provider");
+  const bodyProv = document.getElementById("clicks-body-provider");
+  const tableCamp = document.getElementById("clicks-table-campaign");
+  const bodyCamp = document.getElementById("clicks-body-campaign");
 
   meta.textContent = "Loading…";
-  table.style.display = "none";
-  body.innerHTML = "";
+  tableProv.style.display = "none";
+  bodyProv.innerHTML = "";
+  tableCamp.style.display = "none";
+  bodyCamp.innerHTML = "";
 
   try {
     const data = await fetchJSON("/v1/tickets/clicks/summary", { limit: 200 });
@@ -140,6 +144,7 @@ async function loadClicks() {
     const total = data.total_clicks || 0;
     const window = data.window || {};
     const byProvider = data.by_provider || {};
+    const byCampaign = data.by_campaign || {};
 
     let windowText = "";
     if (window.start_ts && window.end_ts) {
@@ -152,10 +157,10 @@ async function loadClicks() {
       data.limit ?? 200
     }): ${total}${windowText}`;
 
+    // Providers
     const providers = Object.keys(byProvider).sort();
     providers.forEach((name) => {
       const count = byProvider[name] || 0;
-
       const tr = document.createElement("tr");
 
       const tdProv = document.createElement("td");
@@ -170,13 +175,41 @@ async function loadClicks() {
       tdShare.textContent = computeShare(count, total);
       tr.appendChild(tdShare);
 
-      body.appendChild(tr);
+      bodyProv.appendChild(tr);
     });
+    if (providers.length > 0) {
+      tableProv.style.display = "table";
+    }
 
-    table.style.display = "table";
+    // Campaigns
+    const campaigns = Object.keys(byCampaign).sort();
+    campaigns.forEach((cid) => {
+      const count = byCampaign[cid] || 0;
+      const tr = document.createElement("tr");
+
+      const label = cid === "none" ? "(none)" : cid;
+
+      const tdCamp = document.createElement("td");
+      tdCamp.textContent = label;
+      tr.appendChild(tdCamp);
+
+      const tdCount = document.createElement("td");
+      tdCount.textContent = String(count);
+      tr.appendChild(tdCount);
+
+      const tdShare = document.createElement("td");
+      tdShare.textContent = computeShare(count, total);
+      tr.appendChild(tdShare);
+
+      bodyCamp.appendChild(tr);
+    });
+    if (campaigns.length > 0) {
+      tableCamp.style.display = "table";
+    }
   } catch (e) {
     meta.textContent = `Error loading clicks: ${e}`;
-    table.style.display = "none";
+    tableProv.style.display = "none";
+    tableCamp.style.display = "none";
   }
 }
 
