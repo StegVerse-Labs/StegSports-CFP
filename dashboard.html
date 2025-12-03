@@ -109,6 +109,32 @@
       color: #9ca3af;
       margin-bottom: 4px;
     }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+    .btn-small {
+      border-radius: 999px;
+      border: none;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      background: #1f2937;
+      color: #e5e7eb;
+    }
+    .btn-small.primary {
+      background: #2563eb;
+      color: #f9fafb;
+    }
+    .btn-small:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
   </style>
 </head>
 <body>
@@ -151,8 +177,17 @@
     </div>
 
     <div class="card" id="clicks-card">
-      <h2>Ticket Clicks (SCW-API)</h2>
+      <h2>Ticket Clicks & Revenue</h2>
       <div class="muted" id="clicks-meta">Loading…</div>
+
+      <div class="toolbar">
+        <button id="export-btn" class="btn-small primary">
+          Download CSV
+        </button>
+        <span class="muted" id="export-meta">
+          CSV uses current click + conversion data in tables below.
+        </span>
+      </div>
 
       <div class="split-grid">
         <div>
@@ -169,7 +204,9 @@
           </table>
         </div>
         <div>
-          <div class="subcard-title">By campaign_id (clicks + revenue)</div>
+          <div class="subcard-title">
+            By campaign_id (clicks · conversions · revenue)
+          </div>
           <table id="clicks-table-campaign" style="display:none;">
             <thead>
               <tr>
