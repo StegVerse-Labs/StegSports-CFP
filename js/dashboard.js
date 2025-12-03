@@ -1,5 +1,5 @@
 // js/dashboard.js
-// [CFP-DASHBOARD v2025-12-03-03]
+// [CFP-DASHBOARD v2025-12-03-04]
 
 const SCW_API_BASE =
   (typeof window !== "undefined" && window.CFP_API_BASE) ||
@@ -117,12 +117,35 @@ async function loadNetworks() {
   }
 }
 
-// ---------------- Ticket click summary ----------------
+// ---------------- Ticket click summary + conversions ----------------
 
 function computeShare(count, total) {
   if (!total || total <= 0) return "0%";
   const pct = (count / total) * 100;
   return `${pct.toFixed(1)}%`;
+}
+
+function formatCurrency(amount, currency) {
+  if (amount == null) return "—";
+  const num = Number(amount);
+  if (!isFinite(num)) return "—";
+  const code = currency || "USD";
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 2,
+    }).format(num);
+  } catch {
+    return `${num.toFixed(2)} ${code}`;
+  }
+}
+
+function computeRpc(revenue, clicks) {
+  if (!clicks || clicks <= 0 || revenue == null) return "—";
+  const val = Number(revenue) / clicks;
+  if (!isFinite(val)) return "—";
+  return val.toFixed(2);
 }
 
 async function loadClicks() {
@@ -134,30 +157,33 @@ async function loadClicks() {
 
   meta.textContent = "Loading…";
   tableProv.style.display = "none";
-  bodyProv.innerHTML = "";
   tableCamp.style.display = "none";
+  bodyProv.innerHTML = "";
   bodyCamp.innerHTML = "";
 
   try {
-    const data = await fetchJSON("/v1/tickets/clicks/summary", { limit: 200 });
+    // 1) Click summary from SCW
+    const clickData = await fetchJSON("/v1/tickets/clicks/summary", {
+      limit: 200,
+    });
 
-    const total = data.total_clicks || 0;
-    const window = data.window || {};
-    const byProvider = data.by_provider || {};
-    const byCampaign = data.by_campaign || {};
+    const total = clickData.total_clicks || 0;
+    const window = clickData.window || {};
+    const byProvider = clickData.by_provider || {};
+    const byCampaign = clickData.by_campaign || {};
 
     let windowText = "";
     if (window.start_ts && window.end_ts) {
       const start = new Date(window.start_ts * 1000);
       const end = new Date(window.end_ts * 1000);
-      windowText = ` · window: ${start.toISOString()} → ${end.toISOString()}`;
+      windowText = ` · click window: ${start.toISOString()} → ${end.toISOString()}`;
     }
 
     meta.textContent = `Total logged clicks (last ${
-      data.limit ?? 200
+      clickData.limit ?? 200
     }): ${total}${windowText}`;
 
-    // Providers
+    // Providers table
     const providers = Object.keys(byProvider).sort();
     providers.forEach((name) => {
       const count = byProvider[name] || 0;
@@ -181,31 +207,77 @@ async function loadClicks() {
       tableProv.style.display = "table";
     }
 
-    // Campaigns
-    const campaigns = Object.keys(byCampaign).sort();
-    campaigns.forEach((cid) => {
-      const count = byCampaign[cid] || 0;
-      const tr = document.createElement("tr");
+    // 2) Determine campaign IDs that actually have clicks
+    const campaignIds = Object.keys(byCampaign).filter((cid) => cid !== "none");
+    if (campaignIds.length === 0) {
+      tableCamp.style.display = "none";
+      return;
+    }
 
+    // 3) Fetch Partnerize conversions for those campaigns
+    let convData;
+    try {
+      convData = await fetchJSON("/v1/partnerize/conversions/summary", {
+        campaign_ids: campaignIds.join(","),
+        days: 30,
+      });
+    } catch (e) {
+      // If conversions call fails, at least show click counts
+      meta.textContent += ` · conversions error: ${e}`;
+      tableCamp.style.display = "none";
+      return;
+    }
+
+    const convMap = {};
+    (convData.campaigns || []).forEach((c) => {
+      convMap[String(c.campaign_id)] = c;
+    });
+
+    const convWindow = convData.window || {};
+    if (convWindow.start_date && convWindow.end_date) {
+      meta.textContent += ` · conv window: ${convWindow.start_date} → ${convWindow.end_date}`;
+    }
+
+    // 4) Build by-campaign table (clicks + conversions + revenue)
+    const campaignsSorted = Object.keys(byCampaign).sort();
+
+    campaignsSorted.forEach((cid) => {
+      const clicks = byCampaign[cid] || 0;
       const label = cid === "none" ? "(none)" : cid;
+
+      const stats = convMap[cid] || {};
+      const conv = stats.conversions ?? 0;
+      const rev = stats.revenue ?? null;
+      const currency = stats.currency || "USD";
+      const rpc = computeRpc(rev, clicks);
+
+      const tr = document.createElement("tr");
 
       const tdCamp = document.createElement("td");
       tdCamp.textContent = label;
       tr.appendChild(tdCamp);
 
-      const tdCount = document.createElement("td");
-      tdCount.textContent = String(count);
-      tr.appendChild(tdCount);
+      const tdClicks = document.createElement("td");
+      tdClicks.textContent = String(clicks);
+      tr.appendChild(tdClicks);
 
-      const tdShare = document.createElement("td");
-      tdShare.textContent = computeShare(count, total);
-      tr.appendChild(tdShare);
+      const tdConv = document.createElement("td");
+      tdConv.textContent = conv == null ? "—" : String(conv);
+      tr.appendChild(tdConv);
+
+      const tdRev = document.createElement("td");
+      tdRev.textContent =
+        rev == null ? "—" : formatCurrency(rev, currency);
+      tr.appendChild(tdRev);
+
+      const tdRpc = document.createElement("td");
+      tdRpc.textContent = rpc === "—" ? "—" : `${rpc} / click`;
+      tr.appendChild(tdRpc);
 
       bodyCamp.appendChild(tr);
     });
-    if (campaigns.length > 0) {
-      tableCamp.style.display = "table";
-    }
+
+    tableCamp.style.display = "table";
   } catch (e) {
     meta.textContent = `Error loading clicks: ${e}`;
     tableProv.style.display = "none";
