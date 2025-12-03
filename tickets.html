@@ -124,10 +124,6 @@
       background: #1e40af;
       color: #dbeafe;
     }
-    .pill.secondary {
-      background: #111827;
-      color: #9ca3af;
-    }
     .provider-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
@@ -198,9 +194,8 @@
     <header>
       <h1>CFP Tickets</h1>
       <p>
-        Search for College Football Playoff tickets and we’ll route you through
-        our A/B-tested partners. Every outbound click is logged for later
-        analytics.
+        Search for College Football Playoff tickets and tag flows with a
+        Partnerize campaign. Every outbound click is logged for later analytics.
       </p>
     </header>
 
@@ -249,6 +244,20 @@
             <div class="field-help">
               For example, a group of 6 could sit in 2–3 stacked rows.
             </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="campaign-id">Partnerize campaign ID (optional)</label>
+          <input
+            id="campaign-id"
+            name="campaign-id"
+            type="text"
+            placeholder="e.g. 123456"
+          />
+          <div class="field-help">
+            This is logged with every click, so you can see which campaign each
+            game / page is feeding.
           </div>
         </div>
 
