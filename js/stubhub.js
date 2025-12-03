@@ -1,84 +1,73 @@
-// [SCFP-STUBHUB v1.2]
-// Mirrors the SeatGeek helper but with optional group/rows/stacks metadata.
-// Replace STUBHUB_AFFILIATE_ID with your real StubHub affiliate/campaign parameter.
+// js/stubhub.js
+// StubHub-focused page.
 
-const StegStubHub = (function () {
-  // TODO: Replace this with your real StubHub affiliate ID / campaign key:
-  const AFFILIATE_ID = "YOUR_STUBHUB_AFFILIATE_ID";
+import { searchTickets, getExperimentId } from "./app.js";
 
-  /**
-   * Generic search-based StubHub affiliate link.
-   * Optional `opts` carries group & seating preferences:
-   *   - opts.groupSize : number
-   *   - opts.maxRows   : 1 | 2 | 3 | string
-   *   - opts.stacked   : boolean
-   *
-   * We do two things:
-   *   1) Enrich the search text with human-readable hints
-   *   2) Append machine-readable query params (sg_group, sg_rows, sg_stacked)
-   *      so SCW / StegSports can analyze patterns later.
-   */
-  function buildSearchUrl(query, opts) {
-    const base = "https://www.stubhub.com/find/";
-    const options = opts || {};
+const form = document.querySelector("#cfp-form");
+const btn = document.querySelector("#cfp-submit");
+const resultsBox = document.querySelector("#results");
 
-    let q = String(query || "").trim();
-    const hintParts = [];
+if (form && btn && resultsBox) {
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    resultsBox.innerHTML = "";
+    btn.disabled = true;
 
-    if (options.groupSize && Number(options.groupSize) > 0) {
-      hintParts.push(`${options.groupSize} tickets`);
+    const data = new FormData(form);
+
+    const params = {
+      event_name: data.get("event_name") || "",
+      location: data.get("location") || "",
+      date: data.get("date") || "",
+      group_size: Number(data.get("group_size") || "2"),
+      max_rows: Number(data.get("max_rows") || "1"),
+      provider: "stubHub", // override
+      experiment_id: getExperimentId(),
+    };
+
+    try {
+      const res = await searchTickets(params);
+      renderResults(res);
+    } catch (err) {
+      console.error(err);
+      resultsBox.innerHTML =
+        '<div class="result-provider">Something went wrong loading tickets. Try again in a minute.</div>';
+    } finally {
+      btn.disabled = false;
     }
-    if (options.maxRows) {
-      const r = String(options.maxRows);
-      if (r === "1") {
-        hintParts.push("same row only");
-      } else {
-        hintParts.push(`up to ${r} rows`);
-      }
-    }
-    if (options.stacked) {
-      hintParts.push("stacked rows ok");
-    }
+  });
+}
 
-    if (hintParts.length > 0) {
-      // Append hints to the base query in a natural way.
-      q = q + " " + hintParts.join(", ");
-    }
+function renderResults(res) {
+  resultsBox.innerHTML = "";
 
-    const params = new URLSearchParams();
-    if (q) {
-      params.set("q", q);
-    }
+  const heading = document.createElement("div");
+  heading.className = "result-provider";
+  heading.textContent = `StubHub page • Backend bucket: ${res.experiment_bucket}`;
 
-    // Affiliate tracking; param name can be adjusted once StubHub confirms.
-    if (AFFILIATE_ID) {
-      params.set("aid", AFFILIATE_ID);
-    }
+  const group = document.createElement("div");
+  group.className = "result-provider";
+  group.textContent = `Group of ${res.group_size} ok on up to ${res.max_rows} row(s).`;
 
-    // Machine-readable hints for StegSports / SCW intelligence.
-    if (options.groupSize) {
-      params.set("sg_group", String(options.groupSize));
-    }
-    if (options.maxRows) {
-      params.set("sg_rows", String(options.maxRows));
-    }
-    if (options.stacked) {
-      params.set("sg_stacked", "1");
-    }
+  const list = document.createElement("div");
+  list.className = "link-list";
 
-    return `${base}?${params.toString()}`;
-  }
+  res.links.forEach((link) => {
+    const a = document.createElement("a");
+    a.href = link.url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.className = "cta" + (link.provider === "stubHub" ? " primary" : "");
+    a.innerHTML = `
+      <span class="label">${link.label}</span>
+      <span class="meta">${
+        link.provider === "stubHub" ? "StubHub preferred" : "Compare on SeatGeek"
+      }</span>
+    `;
+    list.appendChild(a);
+  });
 
-  /**
-   * Wrapper for potential direct-event linking later.
-   * Kept compatible with SeatGeek's buildEventUrl.
-   */
-  function buildEventUrl(slugOrQuery) {
-    return buildSearchUrl(slugOrQuery);
-  }
-
-  return {
-    buildSearchUrl,
-    buildEventUrl
-  };
-})();
+  resultsBox.appendChild(heading);
+  resultsBox.appendChild(group);
+  resultsBox.appendChild(list);
+}
