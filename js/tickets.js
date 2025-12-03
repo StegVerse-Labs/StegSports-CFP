@@ -1,5 +1,5 @@
 // js/tickets.js
-// [CFP-TICKETS-UI v2025-12-03-02]
+// [CFP-TICKETS-UI v2025-12-03-03]
 
 const API_BASE =
   (typeof window !== "undefined" && window.CFP_API_BASE) ||
@@ -86,7 +86,7 @@ function buildProviderCard(link) {
 }
 
 async function handleSubmit(evt) {
-  evt.preventDefault();
+  if (evt) evt.preventDefault();
 
   const eventName = $("event-name").value.trim();
   const groupSize = $("group-size").value.trim();
@@ -155,7 +155,40 @@ async function handleSubmit(evt) {
   }
 }
 
+// Read query params and pre-fill form
+function applyQueryParams() {
+  const params = new URLSearchParams(window.location.search);
+
+  const eventName = params.get("event_name");
+  const groupSize = params.get("group_size");
+  const maxRows = params.get("max_rows");
+  const campaignId = params.get("campaign_id");
+
+  if (eventName) {
+    $("event-name").value = eventName;
+  }
+  if (groupSize) {
+    $("group-size").value = groupSize;
+  }
+  if (maxRows) {
+    $("max-rows").value = maxRows;
+  }
+  if (campaignId) {
+    $("campaign-id").value = campaignId;
+  }
+
+  // If we at least have an event_name, auto-run the search once
+  if (eventName) {
+    // Slight delay to avoid racing DOM
+    setTimeout(() => {
+      handleSubmit(new Event("submit"));
+    }, 50);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   $("tickets-form").addEventListener("submit", handleSubmit);
   $("reset-btn").addEventListener("click", resetForm);
+
+  applyQueryParams();
 });
