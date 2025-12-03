@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CFP Affiliate Dashboard · StegSports</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="page page-dark">
+  <header class="page-header">
+    <div class="page-header-inner">
+      <div class="logo-lockup">
+        <span class="logo-dot">🏈</span>
+        <div class="logo-text">
+          <div class="logo-title">StegSports</div>
+          <div class="logo-subtitle">CFP Affiliate Dashboard</div>
+        </div>
+      </div>
+
+      <nav class="main-nav">
+        <a href="index.html">Bracket</a>
+        <a href="team.html">Teams</a>
+        <a href="stubhub.html">Tickets</a>
+        <a href="dashboard.html" class="active">Affiliate</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page-main">
+    <section class="card card-lg">
+      <h1 class="card-title">Affiliate Revenue Overview</h1>
+      <p class="card-subtitle">
+        Live view of click-through traffic and conversions from CFP.StegSports.app.
+        Data comes from Partnerize via the CFP API.
+      </p>
+
+      <div class="metrics-grid" id="metrics-grid">
+        <div class="metric-tile">
+          <div class="metric-label">Total Conversions</div>
+          <div class="metric-value" id="metric-total-conversions">–</div>
+          <div class="metric-footnote" id="metric-total-conversions-note"></div>
+        </div>
+
+        <div class="metric-tile">
+          <div class="metric-label">Total Commission</div>
+          <div class="metric-value" id="metric-total-commission">–</div>
+          <div class="metric-footnote" id="metric-total-commission-note"></div>
+        </div>
+
+        <div class="metric-tile">
+          <div class="metric-label">Average Commission / Conversion</div>
+          <div class="metric-value" id="metric-avg-commission">–</div>
+          <div class="metric-footnote">Approximate, based on current page of data</div>
+        </div>
+
+        <div class="metric-tile">
+          <div class="metric-label">Networks</div>
+          <div class="metric-value" id="metric-networks-count">–</div>
+          <div class="metric-footnote" id="metric-networks-note"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Filters</h2>
+      <form id="filters-form" class="filters-form">
+        <div class="field">
+          <label for="campaign-id">Campaign ID</label>
+          <input
+            id="campaign-id"
+            name="campaign-id"
+            type="number"
+            inputmode="numeric"
+            placeholder="e.g. 12345"
+          />
+          <div class="field-help">
+            Use your Partnerize campaign ID for CFP traffic.
+          </div>
+        </div>
+
+        <div class="field-grid-2">
+          <div class="field">
+            <label for="start-date">Start date (YYYY-MM-DD)</label>
+            <input id="start-date" name="start-date" type="date" />
+          </div>
+          <div class="field">
+            <label for="end-date">End date (YYYY-MM-DD)</label>
+            <input id="end-date" name="end-date" type="date" />
+          </div>
+        </div>
+
+        <div class="field-grid-2">
+          <div class="field">
+            <label for="limit">Page size</label>
+            <input
+              id="limit"
+              name="limit"
+              type="number"
+              min="1"
+              max="1000"
+              value="200"
+            />
+          </div>
+          <div class="field">
+            <label for="offset">Offset</label>
+            <input
+              id="offset"
+              name="offset"
+              type="number"
+              min="0"
+              value="0"
+            />
+            <div class="field-help">
+              Use this to page through long result sets.
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          Refresh data
+        </button>
+        <button type="button" id="reset-filters" class="btn-ghost">
+          Reset
+        </button>
+
+        <div id="filters-error" class="form-error" hidden></div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Conversions (raw)</h2>
+      <p class="card-subtitle">
+        This is the raw JSON payload returned from Partnerize via
+        <code>/v1/partnerize/campaigns/{campaign_id}/conversions</code>.
+      </p>
+
+      <pre id="raw-json" class="code-block">Awaiting data…</pre>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Networks (raw)</h2>
+      <pre id="networks-json" class="code-block">Awaiting data…</pre>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <div class="page-footer-inner">
+      <span>StegSports · CFP prototype · Alpha</span>
+    </div>
+  </footer>
+
+  <!-- Optional override: set window.CFP_API_BASE in a small inline script
+       if the API lives at a different URL than the default in dashboard.js -->
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
