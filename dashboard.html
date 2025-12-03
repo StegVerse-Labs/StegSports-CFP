@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    /* Minimal CFP-committee style overlay for this page */
     body {
       background: #050816;
       color: #f9fafb;
@@ -19,6 +18,19 @@
       max-width: 960px;
       margin: 0 auto;
       padding: 24px 16px 64px;
+    }
+    .top-nav {
+      margin-bottom: 16px;
+      font-size: 0.8rem;
+    }
+    .top-nav a {
+      margin-right: 12px;
+      color: #9ca3af;
+      text-decoration: none;
+    }
+    .top-nav a.active {
+      color: #f9fafb;
+      font-weight: 600;
     }
     header h1 {
       font-size: 1.8rem;
@@ -86,52 +98,33 @@
       font-size: 0.85rem;
       margin-top: 6px;
     }
-    a {
-      color: #60a5fa;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    .top-nav {
-      margin-bottom: 16px;
-      font-size: 0.8rem;
-    }
-    .top-nav a {
-      margin-right: 12px;
-      color: #9ca3af;
-    }
-    .top-nav a.active {
-      color: #f9fafb;
-      font-weight: 600;
-    }
   </style>
 </head>
 <body>
   <div class="page">
     <div class="top-nav">
       <a href="index.html">Bracket</a>
-      <a href="team.html">Teams</a>
+      <a href="tickets.html">Tickets</a>
       <a href="dashboard.html" class="active">Affiliate Dashboard</a>
     </div>
 
     <header>
-      <h1>Affiliate Dashboard (Partnerize)</h1>
+      <h1>Affiliate Dashboard</h1>
       <p>
-        Live check of Partnerize credentials and networks connected to
+        Live view of Partnerize connectivity and ticket click flow through
         <span class="muted">SCW-API</span>.
       </p>
     </header>
 
     <div class="card" id="status-card">
-      <h2>Connection Status</h2>
+      <h2>Partnerize Status</h2>
       <div id="status-pill" class="pill">Loading…</div>
       <div class="muted" id="status-meta"></div>
       <div class="error" id="status-error" style="display:none;"></div>
     </div>
 
     <div class="card" id="networks-card">
-      <h2>Networks</h2>
+      <h2>Partnerize Networks</h2>
       <div class="muted" id="networks-meta">Loading…</div>
       <table id="networks-table" style="display:none;">
         <thead>
@@ -143,6 +136,21 @@
           </tr>
         </thead>
         <tbody id="networks-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card" id="clicks-card">
+      <h2>Ticket Clicks (SCW-API)</h2>
+      <div class="muted" id="clicks-meta">Loading…</div>
+      <table id="clicks-table" style="display:none;">
+        <thead>
+          <tr>
+            <th>Provider</th>
+            <th>Clicks</th>
+            <th>Share</th>
+          </tr>
+        </thead>
+        <tbody id="clicks-body"></tbody>
       </table>
     </div>
   </div>
