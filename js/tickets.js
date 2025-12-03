@@ -1,7 +1,6 @@
 // js/tickets.js
-// [CFP-TICKETS-UI v2025-12-03-01]
+// [CFP-TICKETS-UI v2025-12-03-02]
 
-// Change this if your API lives at a different host:
 const API_BASE =
   (typeof window !== "undefined" && window.CFP_API_BASE) ||
   "https://scw-api.onrender.com";
@@ -38,13 +37,14 @@ function resetForm() {
   $("event-name").value = "";
   $("group-size").value = "";
   $("max-rows").value = "";
+  $("campaign-id").value = "";
   $("form-error").style.display = "none";
   $("form-error").textContent = "";
   $("results-card").style.display = "none";
   $("raw-json").textContent = "Awaiting search…";
 }
 
-function buildProviderCard(link, primaryProvider) {
+function buildProviderCard(link) {
   const card = document.createElement("div");
   card.className = "provider-card";
 
@@ -65,7 +65,6 @@ function buildProviderCard(link, primaryProvider) {
   const actions = document.createElement("div");
   actions.className = "provider-actions";
 
-  // Main button goes through SCW redirect (logs click then sends to provider)
   const mainBtn = document.createElement("a");
   mainBtn.href = API_BASE + link.click_url;
   mainBtn.target = "_blank";
@@ -73,7 +72,6 @@ function buildProviderCard(link, primaryProvider) {
   mainBtn.textContent = "Open via StegSports";
   actions.appendChild(mainBtn);
 
-  // Optional raw provider link (direct_url)
   const rawBtn = document.createElement("a");
   rawBtn.href = link.direct_url;
   rawBtn.target = "_blank";
@@ -93,6 +91,7 @@ async function handleSubmit(evt) {
   const eventName = $("event-name").value.trim();
   const groupSize = $("group-size").value.trim();
   const maxRows = $("max-rows").value;
+  const campaignId = $("campaign-id").value.trim();
 
   const errorBox = $("form-error");
   const submitBtn = $("submit-btn");
@@ -115,6 +114,7 @@ async function handleSubmit(evt) {
     };
     if (groupSize) params.group_size = Number(groupSize);
     if (maxRows) params.max_rows = Number(maxRows);
+    if (campaignId) params.campaign_id = campaignId;
 
     const data = await fetchJSON("/v1/tickets/search", params);
 
@@ -122,25 +122,26 @@ async function handleSubmit(evt) {
 
     const primaryProvider = data.primary_provider || "seatGeek";
 
-    // Update primary pill
     const pill = $("primary-pill");
     pill.textContent = `Primary: ${
       primaryProvider === "seatGeek" ? "SeatGeek" : "StubHub"
     }`;
     pill.className = "pill primary";
 
-    // Meta text
+    const campaignText = data.campaign_id
+      ? ` · campaign: ${data.campaign_id}`
+      : "";
+
     $("results-meta").textContent = `Mode: ${
       data.split?.mode || "auto"
     } · SeatGeek primary share: ${
       data.split?.seatGeek_percent ?? "?"
-    }%`;
+    }%${campaignText}`;
 
-    // Build provider cards
     const grid = $("provider-grid");
     grid.innerHTML = "";
     (data.links || []).forEach((link) => {
-      const card = buildProviderCard(link, primaryProvider);
+      const card = buildProviderCard(link);
       grid.appendChild(card);
     });
 
