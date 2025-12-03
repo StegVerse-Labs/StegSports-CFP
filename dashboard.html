@@ -98,6 +98,17 @@
       font-size: 0.85rem;
       margin-top: 6px;
     }
+    .split-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .subcard-title {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
   </style>
 </head>
 <body>
@@ -142,16 +153,35 @@
     <div class="card" id="clicks-card">
       <h2>Ticket Clicks (SCW-API)</h2>
       <div class="muted" id="clicks-meta">Loading…</div>
-      <table id="clicks-table" style="display:none;">
-        <thead>
-          <tr>
-            <th>Provider</th>
-            <th>Clicks</th>
-            <th>Share</th>
-          </tr>
-        </thead>
-        <tbody id="clicks-body"></tbody>
-      </table>
+
+      <div class="split-grid">
+        <div>
+          <div class="subcard-title">By provider</div>
+          <table id="clicks-table-provider" style="display:none;">
+            <thead>
+              <tr>
+                <th>Provider</th>
+                <th>Clicks</th>
+                <th>Share</th>
+              </tr>
+            </thead>
+            <tbody id="clicks-body-provider"></tbody>
+          </table>
+        </div>
+        <div>
+          <div class="subcard-title">By campaign_id</div>
+          <table id="clicks-table-campaign" style="display:none;">
+            <thead>
+              <tr>
+                <th>Campaign</th>
+                <th>Clicks</th>
+                <th>Share</th>
+              </tr>
+            </thead>
+            <tbody id="clicks-body-campaign"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
