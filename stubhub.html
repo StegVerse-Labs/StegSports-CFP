@@ -1,231 +1,99 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>StubHub CFP Tickets – StegSports</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Find StubHub tickets for CFP games, conference championships, and key college football matchups via StegSports." />
-  <link rel="stylesheet" href="css/style.css" />
-</head>
-<body class="cfp-body">
-  <header class="cfp-header">
-    <div class="cfp-header-inner">
-      <div class="cfp-brand">
-        <span class="cfp-logo-dot"></span>
-        <span class="cfp-logo-text">StegSports CFP</span>
-      </div>
-      <nav class="cfp-nav">
-        <a href="index.html" class="cfp-nav-link">Rankings</a>
-        <a href="projections.html" class="cfp-nav-link cfp-nav-link-disabled">Projections (soon)</a>
-        <a href="scenarios.html" class="cfp-nav-link cfp-nav-link-disabled">Chaos Scenarios (soon)</a>
-        <a href="stubhub.html" class="cfp-nav-link cfp-nav-link-active">StubHub Tickets</a>
-      </nav>
-    </div>
-  </header>
-
-  <main class="cfp-main">
-    <section class="cfp-hero">
-      <div class="cfp-hero-text">
-        <h1>StubHub College Football Tickets</h1>
-        <p class="cfp-hero-subtitle">
-          Find seats for CFP games, conference championships, and key regular-season matchups.
-          Searches use our StubHub affiliate links at no extra cost to you.
-        </p>
-      </div>
-    </section>
-
-    <section class="cfp-section">
-      <header class="cfp-section-header">
-        <h2>Smart Group Search</h2>
+  <head>
+    <meta charset="utf-8" />
+    <title>CFP Tickets • StubHub View</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>CFP Tickets • StubHub</h1>
+        <div class="sub">
+          Dedicated StubHub view, still powered by the same StegSports backend.
+        </div>
+        <div class="badge-row">
+          <span class="badge blue">StubHub A/B bucket</span>
+          <span class="badge">Affiliate-supported</span>
+        </div>
       </header>
-      <div class="cfp-card">
-        <p style="margin-top: 0; font-size: 0.9rem; color: var(--cfp-text-muted);">
-          Type the matchup, bowl name, or team you’re looking for and, optionally, tell us about your group.
-          We’ll open StubHub in a new tab with your preferences encoded in the link for future StegSports intelligence.
-        </p>
-        <form id="stubhub-search-form" class="cfp-stubhub-form">
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
-            <input
-              type="text"
-              id="stubhub-query"
-              placeholder="e.g. CFP National Championship, Big 12 Championship, Texas Tech vs Oklahoma"
-              style="
-                flex: 1;
-                min-width: 220px;
-                padding: 0.45rem 0.6rem;
-                border-radius: 999px;
-                border: 1px solid var(--cfp-border);
-                font-size: 0.9rem;
-              "
-            />
-            <button type="submit" class="cfp-btn">
-              Search StubHub
-            </button>
-          </div>
 
-          <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; font-size: 0.85rem;">
-            <div style="display:flex; align-items:center; gap:0.4rem;">
-              <label for="group-size" style="color: var(--cfp-text-muted);">Group size (optional)</label>
+      <main>
+        <section class="card">
+          <h2>Find your game</h2>
+          <form id="cfp-form">
+            <div class="label">Matchup or team</div>
+            <div class="row">
               <input
-                type="number"
-                id="group-size"
-                min="1"
-                step="1"
-                style="
-                  width: 70px;
-                  padding: 0.3rem 0.4rem;
-                  border-radius: 999px;
-                  border: 1px solid var(--cfp-border);
-                  font-size: 0.85rem;
-                "
+                type="text"
+                name="event_name"
+                placeholder="Texas Tech vs BYU, Rose Bowl, etc."
+                required
               />
             </div>
 
-            <div style="display:flex; align-items:center; gap:0.4rem;">
-              <label for="max-rows" style="color: var(--cfp-text-muted);">Max rows</label>
-              <select
-                id="max-rows"
-                style="
-                  padding: 0.3rem 0.6rem;
-                  border-radius: 999px;
-                  border: 1px solid var(--cfp-border);
-                  font-size: 0.85rem;
-                  background: #ffffff;
-                "
-              >
-                <option value="">Any</option>
-                <option value="1">Same row only</option>
-                <option value="2">Up to 2 rows</option>
-                <option value="3">Up to 3 rows</option>
-              </select>
+            <div class="row">
+              <div>
+                <div class="label">Location (optional)</div>
+                <input
+                  type="text"
+                  name="location"
+                  placeholder="Glendale, New Orleans, Arlington…"
+                />
+              </div>
+              <div>
+                <div class="label">Date (optional)</div>
+                <input type="text" name="date" placeholder="Jan 20, 2026" />
+              </div>
             </div>
 
-            <label style="display:flex; align-items:center; gap:0.35rem; color: var(--cfp-text-muted);">
-              <input type="checkbox" id="stacked-ok" />
-              <span>Stacked rows ok (front/back)</span>
-            </label>
+            <div class="row">
+              <div>
+                <div class="label">Group size</div>
+                <input
+                  type="number"
+                  name="group_size"
+                  value="4"
+                  min="1"
+                  inputmode="numeric"
+                />
+              </div>
+              <div>
+                <div class="label">Max rows to split across</div>
+                <input
+                  type="number"
+                  name="max_rows"
+                  value="2"
+                  min="1"
+                  inputmode="numeric"
+                />
+              </div>
+            </div>
+
+            <button type="submit" id="cfp-submit" class="primary">
+              Search on StubHub
+            </button>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>StubHub results</h2>
+          <div id="results">
+            <div class="result-provider">
+              We’ll emphasize StubHub links here, but still show SeatGeek to
+              compare prices.
+            </div>
           </div>
-        </form>
-      </div>
-    </section>
+        </section>
+      </main>
 
-    <section class="cfp-section cfp-section-alt">
-      <header class="cfp-section-header">
-        <h2>Popular CFP & Championship Searches</h2>
-      </header>
-      <div class="cfp-grid">
-        <div class="cfp-card">
-          <h3>CFP National Championship</h3>
-          <p>All listings for the national title game.</p>
-          <a
-            href="#"
-            data-stubhub-query="CFP National Championship"
-            class="cfp-btn cfp-stubhub-quick"
-          >
-            View on StubHub
-          </a>
-        </div>
-        <div class="cfp-card">
-          <h3>CFP Semifinals</h3>
-          <p>Orange, Rose, Sugar, Fiesta, Cotton – whichever is hosting this year’s semifinals.</p>
-          <a
-            href="#"
-            data-stubhub-query="College Football Playoff Semifinal"
-            class="cfp-btn cfp-stubhub-quick"
-          >
-            View on StubHub
-          </a>
-        </div>
-        <div class="cfp-card">
-          <h3>Texas Tech Big 12 Championship</h3>
-          <p>Follow the Red Raiders on a Big 12 title run.</p>
-          <a
-            href="#"
-            data-stubhub-query="Big 12 Championship Texas Tech"
-            class="cfp-btn cfp-stubhub-quick"
-          >
-            View on StubHub
-          </a>
-        </div>
-        <div class="cfp-card">
-          <h3>Conference Title Games</h3>
-          <p>SEC, Big Ten, ACC, Big 12 and more.</p>
-          <a
-            href="#"
-            data-stubhub-query="SEC Championship game"
-            class="cfp-btn cfp-stubhub-quick"
-          >
-            View SEC Tickets
-          </a>
-        </div>
-      </div>
-    </section>
+      <footer>
+        This page may be used in A/B experiments against SeatGeek-first
+        layouts. Revenue is shared with CFP.StegSports.app.
+      </footer>
+    </div>
 
-    <footer class="cfp-footer">
-      <div class="cfp-footer-inner">
-        <p class="cfp-footer-text">
-          © <span id="cfp-year"></span> StegSports.
-          Independent CFP-style analysis. Not affiliated with the official CFP organization.
-        </p>
-      </div>
-    </footer>
-  </main>
-
-  <script src="js/stubhub.js"></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      // year
-      var yearEls = document.querySelectorAll("#cfp-year");
-      yearEls.forEach(function (el) {
-        el.textContent = new Date().getFullYear();
-      });
-
-      var form = document.getElementById("stubhub-search-form");
-      var input = document.getElementById("stubhub-query");
-      var groupInput = document.getElementById("group-size");
-      var rowsSelect = document.getElementById("max-rows");
-      var stackedCheckbox = document.getElementById("stacked-ok");
-
-      function buildOpts() {
-        var opts = {};
-        if (groupInput && groupInput.value) {
-          var n = parseInt(groupInput.value, 10);
-          if (!isNaN(n) && n > 0) {
-            opts.groupSize = n;
-          }
-        }
-        if (rowsSelect && rowsSelect.value) {
-          opts.maxRows = rowsSelect.value;
-        }
-        if (stackedCheckbox && stackedCheckbox.checked) {
-          opts.stacked = true;
-        }
-        return opts;
-      }
-
-      if (form && input) {
-        form.addEventListener("submit", function (e) {
-          e.preventDefault();
-          var q = input.value.trim();
-          if (!q) return;
-          var opts = buildOpts();
-          var url = StegStubHub.buildSearchUrl(q, opts);
-          window.open(url, "_blank", "noopener");
-        });
-      }
-
-      // quick buttons (no group info, but can be extended later)
-      var quickLinks = document.querySelectorAll(".cfp-stubhub-quick");
-      quickLinks.forEach(function (btn) {
-        btn.addEventListener("click", function (e) {
-          e.preventDefault();
-          var q = btn.getAttribute("data-stubhub-query");
-          if (!q) return;
-          var url = StegStubHub.buildSearchUrl(q);
-          window.open(url, "_blank", "noopener");
-        });
-      });
-    });
-  </script>
-</body>
+    <script type="module" src="/js/stubhub.js"></script>
+  </body>
 </html>
