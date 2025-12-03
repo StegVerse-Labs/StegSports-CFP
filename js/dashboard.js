@@ -1,9 +1,15 @@
 // js/dashboard.js
-// [CFP-DASHBOARD v2025-12-03-04]
+// [CFP-DASHBOARD v2025-12-03-07]
 
 const SCW_API_BASE =
   (typeof window !== "undefined" && window.CFP_API_BASE) ||
   "https://scw-api.onrender.com";
+
+// In-memory snapshot of merged affiliate data for export
+let AFFILIATE_EXPORT = {
+  byCampaign: [],
+  meta: {},
+};
 
 async function fetchJSON(path, params) {
   const url = new URL(SCW_API_BASE + path);
@@ -154,12 +160,17 @@ async function loadClicks() {
   const bodyProv = document.getElementById("clicks-body-provider");
   const tableCamp = document.getElementById("clicks-table-campaign");
   const bodyCamp = document.getElementById("clicks-body-campaign");
+  const exportMeta = document.getElementById("export-meta");
 
   meta.textContent = "Loading…";
   tableProv.style.display = "none";
   tableCamp.style.display = "none";
   bodyProv.innerHTML = "";
   bodyCamp.innerHTML = "";
+
+  AFFILIATE_EXPORT = { byCampaign: [], meta: {} };
+  exportMeta.textContent =
+    "CSV uses current click + conversion data in tables below.";
 
   try {
     // 1) Click summary from SCW
@@ -211,6 +222,8 @@ async function loadClicks() {
     const campaignIds = Object.keys(byCampaign).filter((cid) => cid !== "none");
     if (campaignIds.length === 0) {
       tableCamp.style.display = "none";
+      exportMeta.textContent =
+        "No campaign clicks yet — CSV export will be empty.";
       return;
     }
 
@@ -225,6 +238,8 @@ async function loadClicks() {
       // If conversions call fails, at least show click counts
       meta.textContent += ` · conversions error: ${e}`;
       tableCamp.style.display = "none";
+      exportMeta.textContent =
+        "Conversions API error — CSV will include clicks only.";
       return;
     }
 
@@ -240,6 +255,7 @@ async function loadClicks() {
 
     // 4) Build by-campaign table (clicks + conversions + revenue)
     const campaignsSorted = Object.keys(byCampaign).sort();
+    const exportRows = [];
 
     campaignsSorted.forEach((cid) => {
       const clicks = byCampaign[cid] || 0;
@@ -275,19 +291,139 @@ async function loadClicks() {
       tr.appendChild(tdRpc);
 
       bodyCamp.appendChild(tr);
+
+      // collect for CSV
+      exportRows.push({
+        campaign_id: cid,
+        clicks,
+        conversions: conv,
+        revenue: rev,
+        currency,
+        revenue_per_click: rpc === "—" ? null : Number(rpc),
+      });
     });
 
     tableCamp.style.display = "table";
+
+    AFFILIATE_EXPORT = {
+      byCampaign: exportRows,
+      meta: {
+        total_clicks: total,
+        click_window: window,
+        conv_window: convWindow,
+        generated_at: new Date().toISOString(),
+      },
+    };
+    exportMeta.textContent =
+      "CSV is ready — includes one row per campaign with clicks, conversions, and revenue.";
   } catch (e) {
     meta.textContent = `Error loading clicks: ${e}`;
     tableProv.style.display = "none";
     tableCamp.style.display = "none";
+    AFFILIATE_EXPORT = { byCampaign: [], meta: {} };
+    exportMeta.textContent =
+      "Error loading data — CSV export is not available.";
+  }
+}
+
+// ---------------- CSV export ----------------
+
+function escapeCsvField(val) {
+  if (val === null || val === undefined) return "";
+  const s = String(val);
+  if (/[",\n]/.test(s)) {
+    // escape inner quotes
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function buildCsvFromExport() {
+  const rows = AFFILIATE_EXPORT.byCampaign || [];
+  if (!rows.length) {
+    return null;
+  }
+
+  const header = [
+    "campaign_id",
+    "clicks",
+    "conversions",
+    "revenue",
+    "currency",
+    "revenue_per_click",
+    "generated_at",
+    "click_window_start_ts",
+    "click_window_end_ts",
+    "conv_window_start_date",
+    "conv_window_end_date",
+  ];
+
+  const meta = AFFILIATE_EXPORT.meta || {};
+  const clickWindow = meta.click_window || {};
+  const convWindow = meta.conv_window || {};
+
+  const csvLines = [header.join(",")];
+
+  rows.forEach((r) => {
+    const line = [
+      escapeCsvField(r.campaign_id),
+      escapeCsvField(r.clicks),
+      escapeCsvField(r.conversions),
+      escapeCsvField(r.revenue),
+      escapeCsvField(r.currency),
+      escapeCsvField(r.revenue_per_click),
+      escapeCsvField(meta.generated_at || ""),
+      escapeCsvField(clickWindow.start_ts || ""),
+      escapeCsvField(clickWindow.end_ts || ""),
+      escapeCsvField(convWindow.start_date || ""),
+      escapeCsvField(convWindow.end_date || ""),
+    ].join(",");
+    csvLines.push(line);
+  });
+
+  return csvLines.join("\n");
+}
+
+function downloadCsv() {
+  const btn = document.getElementById("export-btn");
+  const exportMeta = document.getElementById("export-meta");
+
+  const csv = buildCsvFromExport();
+  if (!csv) {
+    exportMeta.textContent =
+      "No exportable data yet — make sure clicks and conversions are loaded.";
+    return;
+  }
+
+  try {
+    btn.disabled = true;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    a.href = url;
+    a.download = `cfp-affiliate-report-${ts}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    exportMeta.textContent =
+      "CSV downloaded — you can send this straight to sponsors or drop into Sheets/Excel.";
+  } finally {
+    btn.disabled = false;
   }
 }
 
 // ---------------- Init ----------------
 
 document.addEventListener("DOMContentLoaded", () => {
+  const exportBtn = document.getElementById("export-btn");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", downloadCsv);
+  }
+
   loadStatus();
   loadNetworks();
   loadClicks();
