@@ -118,6 +118,13 @@
       margin-top: 8px;
       margin-bottom: 4px;
     }
+    .toolbar-left,
+    .toolbar-right {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
     .btn-small {
       border-radius: 999px;
       border: none;
@@ -134,6 +141,18 @@
     .btn-small:disabled {
       opacity: 0.6;
       cursor: default;
+    }
+    .select-small {
+      background: #020617;
+      border-radius: 999px;
+      border: 1px solid #374151;
+      color: #e5e7eb;
+      font-size: 0.8rem;
+      padding: 4px 9px;
+      outline: none;
+    }
+    .select-small:focus {
+      border-color: #4b5563;
     }
     .link-btn {
       display: inline-flex;
@@ -196,12 +215,23 @@
       <div class="muted" id="clicks-meta">Loading…</div>
 
       <div class="toolbar">
-        <button id="export-btn" class="btn-small primary">
-          Download CSV
-        </button>
-        <span class="muted" id="export-meta">
-          CSV uses current click + conversion data in tables below.
-        </span>
+        <div class="toolbar-left">
+          <span class="muted">Conversions window:</span>
+          <select id="window-select" class="select-small">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+          <button id="refresh-btn" class="btn-small">Refresh</button>
+        </div>
+        <div class="toolbar-right">
+          <button id="export-btn" class="btn-small primary">
+            Download CSV
+          </button>
+          <span class="muted" id="export-meta">
+            CSV uses current click + conversion data in tables below.
+          </span>
+        </div>
       </div>
 
       <div class="split-grid">
@@ -232,234 +262,6 @@
                 <th>Revenue</th>
                 <th>Rev/click</th>
                 <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="clicks-body-campaign"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="js/dashboard.js"></script>
-</body>
-</html><!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>CFP Affiliate Dashboard · StegSports</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="css/style.css" />
-  <style>
-    body {
-      background: #050816;
-      color: #f9fafb;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-        "Segoe UI", sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    .page {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 24px 16px 64px;
-    }
-    .top-nav {
-      margin-bottom: 16px;
-      font-size: 0.8rem;
-    }
-    .top-nav a {
-      margin-right: 12px;
-      color: #9ca3af;
-      text-decoration: none;
-    }
-    .top-nav a.active {
-      color: #f9fafb;
-      font-weight: 600;
-    }
-    header h1 {
-      font-size: 1.8rem;
-      margin: 0 0 0.25rem;
-    }
-    header p {
-      margin: 0 0 1.5rem;
-      color: #9ca3af;
-      font-size: 0.9rem;
-    }
-    .card {
-      background: #0b1020;
-      border-radius: 12px;
-      padding: 16px 18px;
-      border: 1px solid #111827;
-      margin-bottom: 18px;
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
-    }
-    .card h2 {
-      font-size: 1.1rem;
-      margin: 0 0 0.75rem;
-    }
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      background: #111827;
-      color: #e5e7eb;
-    }
-    .pill.ok {
-      background: #064e3b;
-      color: #bbf7d0;
-    }
-    .pill.bad {
-      background: #7f1d1d;
-      color: #fecaca;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.86rem;
-      margin-top: 6px;
-    }
-    th, td {
-      padding: 6px 4px;
-      text-align: left;
-    }
-    th {
-      font-weight: 500;
-      color: #9ca3af;
-      border-bottom: 1px solid #111827;
-    }
-    tr:nth-child(even) td {
-      background: #050816;
-    }
-    .muted {
-      color: #6b7280;
-      font-size: 0.8rem;
-    }
-    .error {
-      color: #fecaca;
-      font-size: 0.85rem;
-      margin-top: 6px;
-    }
-    .split-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 8px;
-    }
-    .subcard-title {
-      font-size: 0.8rem;
-      color: #9ca3af;
-      margin-bottom: 4px;
-    }
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-top: 8px;
-      margin-bottom: 4px;
-    }
-    .btn-small {
-      border-radius: 999px;
-      border: none;
-      padding: 6px 12px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      background: #1f2937;
-      color: #e5e7eb;
-    }
-    .btn-small.primary {
-      background: #2563eb;
-      color: #f9fafb;
-    }
-    .btn-small:disabled {
-      opacity: 0.6;
-      cursor: default;
-    }
-  </style>
-</head>
-<body>
-  <div class="page">
-    <div class="top-nav">
-      <a href="index.html">Bracket</a>
-      <a href="tickets.html">Tickets</a>
-      <a href="dashboard.html" class="active">Affiliate Dashboard</a>
-    </div>
-
-    <header>
-      <h1>Affiliate Dashboard</h1>
-      <p>
-        Live view of Partnerize connectivity and ticket click flow through
-        <span class="muted">SCW-API</span>.
-      </p>
-    </header>
-
-    <div class="card" id="status-card">
-      <h2>Partnerize Status</h2>
-      <div id="status-pill" class="pill">Loading…</div>
-      <div class="muted" id="status-meta"></div>
-      <div class="error" id="status-error" style="display:none;"></div>
-    </div>
-
-    <div class="card" id="networks-card">
-      <h2>Partnerize Networks</h2>
-      <div class="muted" id="networks-meta">Loading…</div>
-      <table id="networks-table" style="display:none;">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Network</th>
-            <th>Locale</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody id="networks-body"></tbody>
-      </table>
-    </div>
-
-    <div class="card" id="clicks-card">
-      <h2>Ticket Clicks & Revenue</h2>
-      <div class="muted" id="clicks-meta">Loading…</div>
-
-      <div class="toolbar">
-        <button id="export-btn" class="btn-small primary">
-          Download CSV
-        </button>
-        <span class="muted" id="export-meta">
-          CSV uses current click + conversion data in tables below.
-        </span>
-      </div>
-
-      <div class="split-grid">
-        <div>
-          <div class="subcard-title">By provider</div>
-          <table id="clicks-table-provider" style="display:none;">
-            <thead>
-              <tr>
-                <th>Provider</th>
-                <th>Clicks</th>
-                <th>Share</th>
-              </tr>
-            </thead>
-            <tbody id="clicks-body-provider"></tbody>
-          </table>
-        </div>
-        <div>
-          <div class="subcard-title">
-            By campaign_id (clicks · conversions · revenue)
-          </div>
-          <table id="clicks-table-campaign" style="display:none;">
-            <thead>
-              <tr>
-                <th>Campaign</th>
-                <th>Clicks</th>
-                <th>Conv</th>
-                <th>Revenue</th>
-                <th>Rev/click</th>
               </tr>
             </thead>
             <tbody id="clicks-body-campaign"></tbody>
