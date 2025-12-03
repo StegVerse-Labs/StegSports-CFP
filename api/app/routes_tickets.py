@@ -1,5 +1,5 @@
 # api/app/routes_tickets.py
-# [CFP-TICKETS-ROUTES v2025-12-03-03]
+# [CFP-TICKETS-ROUTES v2025-12-03-04]
 
 import os
 import time
@@ -19,7 +19,7 @@ router = APIRouter(tags=["tickets"])
 SEATGEEK_BASE = os.getenv("SEATGEEK_SEARCH_BASE", "https://seatgeek.com/search")
 STUBHUB_BASE = os.getenv("STUBHUB_SEARCH_BASE", "https://www.stubhub.com/s/")
 
-# These are *generic* affiliate tags; you can adjust param names later
+# Generic affiliate tags – update once official params are known
 SEATGEEK_AFFILIATE_TAG = os.getenv("SEATGEEK_AFFILIATE_TAG", "")
 STUBHUB_AFFILIATE_TAG = os.getenv("STUBHUB_AFFILIATE_TAG", "")
 
@@ -50,6 +50,7 @@ def _build_seatgeek_url(
     event_name: str,
     group_size: Optional[int],
     max_rows: Optional[int],
+    campaign_id: Optional[str],
 ) -> str:
     params: Dict[str, Any] = {
         "search": event_name,
@@ -60,8 +61,10 @@ def _build_seatgeek_url(
         params["max_rows"] = max_rows
 
     if SEATGEEK_AFFILIATE_TAG:
-        # You can swap "aid" for the official param SeatGeek gives you.
         params["aid"] = SEATGEEK_AFFILIATE_TAG
+    if campaign_id:
+        # just annotate – useful when you get reporting
+        params["campaign"] = campaign_id
 
     return f"{SEATGEEK_BASE.rstrip('/')}?{urlencode(params)}"
 
@@ -70,6 +73,7 @@ def _build_stubhub_url(
     event_name: str,
     group_size: Optional[int],
     max_rows: Optional[int],
+    campaign_id: Optional[str],
 ) -> str:
     params: Dict[str, Any] = {
         "q": event_name,
@@ -80,8 +84,9 @@ def _build_stubhub_url(
         params["max_rows"] = max_rows
 
     if STUBHUB_AFFILIATE_TAG:
-        # Again: "aid" is a placeholder; adjust once StubHub confirms the param.
         params["aid"] = STUBHUB_AFFILIATE_TAG
+    if campaign_id:
+        params["campaign"] = campaign_id
 
     return f"{STUBHUB_BASE.rstrip('/')}?{urlencode(params)}"
 
@@ -122,6 +127,10 @@ async def tickets_search(
             "2 = OK with two stacked rows, etc.)."
         ),
     ),
+    campaign_id: Optional[str] = Query(
+        None,
+        description="Optional Partnerize campaign ID to tag this flow.",
+    ),
 ) -> Dict[str, Any]:
     """
     This does NOT call SeatGeek / StubHub APIs yet. It simply constructs search URLs and
@@ -132,25 +141,28 @@ async def tickets_search(
 
     primary = _choose_primary_bucket()
 
-    sg_url = _build_seatgeek_url(event_name, group_size, max_rows)
-    sh_url = _build_stubhub_url(event_name, group_size, max_rows)
+    sg_url = _build_seatgeek_url(event_name, group_size, max_rows, campaign_id)
+    sh_url = _build_stubhub_url(event_name, group_size, max_rows, campaign_id)
 
     # Relative click URLs – front-end will prepend its API base
+    base_params = {
+        "event_name": event_name,
+        "group_size": group_size or "",
+        "max_rows": max_rows or "",
+        "campaign_id": campaign_id or "",
+    }
+
     sg_click = "/v1/tickets/click?" + urlencode(
         {
+            **base_params,
             "provider": "seatGeek",
-            "event_name": event_name,
-            "group_size": group_size or "",
-            "max_rows": max_rows or "",
             "bucket": primary if primary == "seatGeek" else "secondary",
         }
     )
     sh_click = "/v1/tickets/click?" + urlencode(
         {
+            **base_params,
             "provider": "stubHub",
-            "event_name": event_name,
-            "group_size": group_size or "",
-            "max_rows": max_rows or "",
             "bucket": primary if primary == "stubHub" else "secondary",
         }
     )
@@ -160,6 +172,7 @@ async def tickets_search(
         "event_name": event_name,
         "group_size": group_size,
         "max_rows": max_rows,
+        "campaign_id": campaign_id,
         "primary_provider": primary,
         "split": {
             "mode": PRIMARY_MODE,
@@ -200,15 +213,19 @@ async def tickets_click(
         None,
         description="Experiment bucket label, e.g. 'seatGeek', 'stubHub', 'secondary'",
     ),
+    campaign_id: Optional[str] = Query(
+        None,
+        description="Optional Partnerize campaign ID tagged on this click.",
+    ),
 ):
     provider_norm = provider.strip()
     if provider_norm not in ("seatGeek", "stubHub"):
         raise HTTPException(status_code=400, detail="provider must be 'seatGeek' or 'stubHub'")
 
     if provider_norm == "seatGeek":
-        dest = _build_seatgeek_url(event_name, group_size, max_rows)
+        dest = _build_seatgeek_url(event_name, group_size, max_rows, campaign_id)
     else:
-        dest = _build_stubhub_url(event_name, group_size, max_rows)
+        dest = _build_stubhub_url(event_name, group_size, max_rows, campaign_id)
 
     # Log the click
     client_ip = request.client.host if request.client else None
@@ -221,12 +238,12 @@ async def tickets_click(
             "group_size": group_size,
             "max_rows": max_rows,
             "bucket": bucket,
+            "campaign_id": campaign_id,
             "ip": client_ip,
             "user_agent": ua[:300],
         }
     )
 
-    # 307 preserves method & body (not that we have one here) and is nicer for redirects from forms.
     return RedirectResponse(dest, status_code=307)
 
 
@@ -256,12 +273,12 @@ async def recent_clicks(limit: int = Query(50, ge=1, le=200)) -> Dict[str, Any]:
 @router.get("/clicks/summary", summary="Aggregated click summary (for dashboard)")
 async def clicks_summary(limit: int = Query(200, ge=1, le=_MAX_CLICKS)) -> Dict[str, Any]:
     """
-    Summarise the last N clicks by provider and bucket.
+    Summarise the last N clicks by provider, bucket, and campaign.
 
-    This is intentionally rough but good enough for quick analytics:
     - total_clicks
     - counts by provider (seatGeek / stubHub / unknown)
     - counts by bucket (seatGeek / stubHub / secondary / unknown)
+    - counts by campaign_id (including 'none' for missing)
     - time window (unix ts)
     """
     items = _CLICK_LOG[:limit]
@@ -269,13 +286,18 @@ async def clicks_summary(limit: int = Query(200, ge=1, le=_MAX_CLICKS)) -> Dict[
 
     by_provider: Dict[str, int] = {}
     by_bucket: Dict[str, int] = {}
+    by_campaign: Dict[str, int] = {}
     timestamps: List[int] = []
 
     for e in items:
         p = (e.get("provider") or "unknown").lower()
         b = (e.get("bucket") or "unknown").lower()
+        cid_raw = e.get("campaign_id")
+        cid = str(cid_raw) if cid_raw not in (None, "") else "none"
+
         by_provider[p] = by_provider.get(p, 0) + 1
         by_bucket[b] = by_bucket.get(b, 0) + 1
+        by_campaign[cid] = by_campaign.get(cid, 0) + 1
 
         ts = e.get("ts")
         if isinstance(ts, (int, float)):
@@ -293,4 +315,5 @@ async def clicks_summary(limit: int = Query(200, ge=1, le=_MAX_CLICKS)) -> Dict[
         "window": window,
         "by_provider": by_provider,
         "by_bucket": by_bucket,
+        "by_campaign": by_campaign,
     }
