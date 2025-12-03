@@ -1,105 +1,62 @@
-# seatgeek_client.py
-# v2025-12-02-01 — SeatGeek application-only client
+# api/app/seatgeek_client.py
+#
+# Light-weight SeatGeek integration for CFP StegSports.
+# For now we only build search URLs with an affiliate code.
+
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Optional
-
-import httpx
-
-SEATGEEK_CLIENT_ID = os.getenv("SEATGEEK_CLIENT_ID")
-SEATGEEK_BASE_URL = "https://api.seatgeek.com/2"
+import urllib.parse
+from typing import Optional
 
 
-class SeatGeekConfigError(RuntimeError):
-    pass
-
-
-class SeatGeekAPIError(RuntimeError):
-    pass
-
-
-def _require_config() -> None:
-    if not SEATGEEK_CLIENT_ID:
-        raise SeatGeekConfigError(
-            "SEATGEEK_CLIENT_ID is not set. "
-            "Configure it in your Render environment for the API service."
-        )
-
-
-async def search_events(
-    *,
-    query: Optional[str] = None,
-    city: Optional[str] = None,
-    state: Optional[str] = None,
-    lat: Optional[float] = None,
-    lon: Optional[float] = None,
-    radius_miles: Optional[int] = None,
-    per_page: int = 20,
-) -> List[Dict[str, Any]]:
+class SeatGeekClient:
     """
-    Thin wrapper around SeatGeek events endpoint.
+    Build SeatGeek affiliate search URLs.
 
-    We only use a small, normalized subset of fields so that the rest of
-    the SCW code doesn't care which provider the results came from.
+    Later, once your developer account is approved, we can extend this with:
+      - API-based event discovery
+      - direct linking to specific listings
+    without changing the rest of the backend.
     """
-    _require_config()
 
-    params: Dict[str, Any] = {
-        "client_id": SEATGEEK_CLIENT_ID,
-        "per_page": per_page,
-    }
+    def __init__(self) -> None:
+        # Base web URL (not the API host)
+        self.base_url = os.getenv("SEATGEEK_WEB_BASE", "https://seatgeek.com")
+        # Your affiliate / partner code – whatever SeatGeek / Partnerize gives you.
+        self.affiliate_code = os.getenv("SEATGEEK_AFFILIATE_CODE", "").strip()
 
-    if query:
-        params["q"] = query
+    def build_search_url(
+        self,
+        event_name: str,
+        location: Optional[str] = None,
+        date: Optional[str] = None,
+        group_size: int = 2,
+    ) -> Optional[str]:
+        """
+        Build a SeatGeek search URL like:
+          https://seatgeek.com/search?search=Texas%20Tech&aid=XYZ
+        """
+        if not event_name:
+            return None
 
-    if city:
-        params["venue.city"] = city
-    if state:
-        params["venue.state"] = state
+        query_parts = [event_name]
+        if location:
+            query_parts.append(location)
+        if date:
+            query_parts.append(date)
 
-    if lat is not None and lon is not None:
-        params["lat"] = lat
-        params["lon"] = lon
-        if radius_miles is not None:
-            params["range"] = f"{radius_miles}mi"
+        search_query = " ".join(query_parts)
 
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.get(f"{SEATGEEK_BASE_URL}/events", params=params)
+        params = {
+            "search": search_query,
+            # We'll pass group size as a hint; SeatGeek may ignore it but it's
+            # useful for analytics on your side if they echo it back.
+            "group_size": str(group_size),
+        }
 
-    if resp.status_code != 200:
-        raise SeatGeekAPIError(
-            f"SeatGeek API error {resp.status_code}: {resp.text[:200]}"
-        )
+        if self.affiliate_code:
+            # Many networks use "aid" or "partner" – tweak once you know the final param
+            params["aid"] = self.affiliate_code
 
-    data = resp.json()
-    events = data.get("events", []) or []
-    return [_normalize_event(e) for e in events]
-
-
-def _normalize_event(raw: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Map SeatGeek's event schema into a compact, provider-agnostic format.
-    """
-    venue = raw.get("venue") or {}
-    stats = raw.get("stats") or {}
-
-    return {
-        "provider": "seatgeek",
-        "id": str(raw.get("id")),
-        "title": raw.get("title"),
-        "datetime_local": raw.get("datetime_local"),
-        "url": raw.get("url"),
-        "venue": {
-            "name": venue.get("name"),
-            "city": venue.get("city"),
-            "state": venue.get("state"),
-            "country": venue.get("country"),
-        },
-        "pricing": {
-            "lowest_price": stats.get("lowest_price"),
-            "lowest_price_good_deals": stats.get("lowest_price_good_deals"),
-        },
-        # Placeholder for seat-level info; SeatGeek doesn't expose that in this endpoint
-        "seatmeta": None,
-    }
+        return f"{self.base_url}/search?{urllib.parse.urlencode(params)}"
