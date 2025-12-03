@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CFP Tickets · StegSports</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    body {
+      background: #050816;
+      color: #f9fafb;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+    .top-nav {
+      margin-bottom: 16px;
+      font-size: 0.8rem;
+    }
+    .top-nav a {
+      margin-right: 12px;
+      color: #9ca3af;
+      text-decoration: none;
+    }
+    .top-nav a.active {
+      color: #f9fafb;
+      font-weight: 600;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      margin: 0 0 0.25rem;
+    }
+    header p {
+      margin: 0 0 1.5rem;
+      color: #9ca3af;
+      font-size: 0.9rem;
+    }
+    .card {
+      background: #0b1020;
+      border-radius: 12px;
+      padding: 16px 18px;
+      border: 1px solid #111827;
+      margin-bottom: 18px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+    }
+    .card h2 {
+      font-size: 1.1rem;
+      margin: 0 0 0.75rem;
+    }
+    .field-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 10px;
+    }
+    .field label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-bottom: 3px;
+    }
+    .field input,
+    .field select {
+      padding: 7px 8px;
+      border-radius: 8px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      color: #f9fafb;
+      font-size: 0.9rem;
+    }
+    .field-help {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .btn-primary {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .btn-ghost {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid #374151;
+      background: transparent;
+      color: #e5e7eb;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: #111827;
+      color: #e5e7eb;
+    }
+    .pill.primary {
+      background: #1e40af;
+      color: #dbeafe;
+    }
+    .pill.secondary {
+      background: #111827;
+      color: #9ca3af;
+    }
+    .provider-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .provider-card {
+      border-radius: 10px;
+      border: 1px solid #111827;
+      background: #020617;
+      padding: 10px 12px;
+    }
+    .provider-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .provider-meta {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-bottom: 6px;
+    }
+    .provider-actions a {
+      display: inline-block;
+      margin-right: 6px;
+      margin-bottom: 4px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      text-decoration: none;
+      background: #2563eb;
+      color: #f9fafb;
+    }
+    .provider-actions a.secondary-btn {
+      background: transparent;
+      border: 1px solid #374151;
+    }
+    .status-text {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+    .error {
+      color: #fecaca;
+      font-size: 0.8rem;
+      margin-top: 6px;
+    }
+    .code-block {
+      background: #020617;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 0.75rem;
+      max-height: 220px;
+      overflow: auto;
+      border: 1px solid #111827;
+      color: #e5e7eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="top-nav">
+      <a href="index.html">Bracket</a>
+      <a href="dashboard.html">Affiliate</a>
+      <a href="tickets.html" class="active">Tickets</a>
+    </div>
+
+    <header>
+      <h1>CFP Tickets</h1>
+      <p>
+        Search for College Football Playoff tickets and we’ll route you through
+        our A/B-tested partners. Every outbound click is logged for later
+        analytics.
+      </p>
+    </header>
+
+    <section class="card">
+      <h2>Search event</h2>
+      <form id="tickets-form">
+        <div class="field">
+          <label for="event-name">Event name</label>
+          <input
+            id="event-name"
+            name="event-name"
+            type="text"
+            placeholder="e.g. Sugar Bowl · Texas vs Washington"
+            required
+          />
+          <div class="field-help">
+            This is passed through to SeatGeek / StubHub as the search keyword.
+          </div>
+        </div>
+
+        <div class="field-grid-2">
+          <div class="field">
+            <label for="group-size">Group size (optional)</label>
+            <input
+              id="group-size"
+              name="group-size"
+              type="number"
+              min="1"
+              inputmode="numeric"
+              placeholder="e.g. 4"
+            />
+            <div class="field-help">
+              Used only to annotate search and outbound links for you.
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="max-rows">Max seat rows (optional)</label>
+            <select id="max-rows" name="max-rows">
+              <option value="">No preference</option>
+              <option value="1">Same row only</option>
+              <option value="2">Up to 2 rows</option>
+              <option value="3">Up to 3 rows</option>
+              <option value="4">Up to 4 rows</option>
+            </select>
+            <div class="field-help">
+              For example, a group of 6 could sit in 2–3 stacked rows.
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="submit" id="submit-btn" class="btn-primary">
+            Search tickets
+          </button>
+          <button type="button" id="reset-btn" class="btn-ghost">
+            Reset
+          </button>
+        </div>
+
+        <div id="form-error" class="error" style="display:none;"></div>
+      </form>
+    </section>
+
+    <section class="card" id="results-card" style="display:none;">
+      <h2>
+        Providers
+        <span id="primary-pill" class="pill">Primary: —</span>
+      </h2>
+      <div class="status-text" id="results-meta"></div>
+
+      <div class="provider-grid" id="provider-grid"></div>
+    </section>
+
+    <section class="card">
+      <h2>Raw response (debug)</h2>
+      <pre id="raw-json" class="code-block">Awaiting search…</pre>
+    </section>
+  </div>
+
+  <script src="js/tickets.js"></script>
+</body>
+</html>
