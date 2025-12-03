@@ -1,174 +1,252 @@
 # api/app/routes_partnerize.py
-# [SCW-PARTNERIZE-ROUTES v2025-12-03-01]
-#
-# Thin Partnerize proxy layer for SCW-API.
-# - Handles auth header construction
-# - Exposes a few safe, read-only endpoints for the dashboard.
+# [CFP-PARTNERIZE-ROUTES v2025-12-03-01]
 
 import base64
 import os
-from typing import Any, Dict, Optional
+import time
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
-router = APIRouter(prefix="/v1/partnerize", tags=["partnerize"])
-
-# -------------------------------------------------------------------
-# Config helpers
-# -------------------------------------------------------------------
+router = APIRouter(tags=["partnerize"])
 
 PARTNERIZE_BASE_URL = os.getenv("PARTNERIZE_BASE_URL", "https://api.partnerize.com")
+PARTNERIZE_APP_KEY = os.getenv("PARTNERIZE_APP_KEY", "").strip()
+PARTNERIZE_API_KEY = os.getenv("PARTNERIZE_API_KEY", "").strip()
 
-APP_KEY = os.getenv("PARTNERIZE_APPLICATION_KEY")  # "application_key" in docs
-USER_API_KEY = os.getenv("PARTNERIZE_USER_API_KEY")  # "user_api_key" in docs
+
+def _has_keys() -> bool:
+    return bool(PARTNERIZE_APP_KEY and PARTNERIZE_API_KEY)
 
 
-def _auth_header() -> str:
-    """
-    Build the Basic auth header value like:
-      Authorization: Basic base64(application_key:user_api_key)
-    """
-    if not APP_KEY or not USER_API_KEY:
-        raise RuntimeError(
-            "Partnerize credentials are not configured. "
-            "Set PARTNERIZE_APPLICATION_KEY and PARTNERIZE_USER_API_KEY."
-        )
-
-    raw = f"{APP_KEY}:{USER_API_KEY}".encode("utf-8")
+def _auth_header() -> Dict[str, str]:
+    if not _has_keys():
+        return {}
+    raw = f"{PARTNERIZE_APP_KEY}:{PARTNERIZE_API_KEY}".encode("utf-8")
     token = base64.b64encode(raw).decode("ascii")
-    return f"Basic {token}"
+    return {"Authorization": f"Basic {token}"}
 
 
-async def _partnerize_get(path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """
-    Minimal GET wrapper for Partnerize.
-    Path examples:
-      "/network"
-      "/v2/campaigns"
-    """
-    if not path.startswith("/"):
-        path = "/" + path
+async def _get(path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    if not _has_keys():
+        raise HTTPException(
+            status_code=503,
+            detail="Partnerize keys not configured (PARTNERIZE_APP_KEY / PARTNERIZE_API_KEY).",
+        )
+    base = PARTNERIZE_BASE_URL.rstrip("/")
+    url = f"{base}{path}"
 
-    url = PARTNERIZE_BASE_URL.rstrip("/") + path
-
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            resp = await client.get(
-                url,
-                headers={"Authorization": _auth_header()},
-                params=params or {},
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        resp = await client.get(url, headers=_auth_header(), params=params)
+        try:
+            resp.raise_for_status()
+        except Exception as e:
+            # Bubble up as HTTPException with some detail
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"Partnerize error: {e} :: {resp.text[:400]}",
+            ) from e
+        try:
+            return resp.json()
+        except Exception:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Invalid JSON from Partnerize: {resp.text[:200]}",
             )
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Partnerize request failed: {exc}") from exc
-
-    if resp.status_code == 401:
-        raise HTTPException(status_code=502, detail="Partnerize auth failed (401). Check keys.")
-    if resp.status_code == 403:
-        raise HTTPException(status_code=502, detail="Partnerize access denied (403).")
-    if resp.status_code >= 500:
-        raise HTTPException(status_code=502, detail=f"Partnerize upstream error: {resp.status_code}")
-
-    try:
-        return resp.json()
-    except ValueError:
-        raise HTTPException(status_code=502, detail="Partnerize returned non-JSON response.")
 
 
 # -------------------------------------------------------------------
-# Public endpoints
+# Status
 # -------------------------------------------------------------------
 
 
-@router.get("/status", summary="Partnerize config & health summary")
+@router.get("/status", summary="Partnerize env + basic /network ping")
 async def partnerize_status() -> Dict[str, Any]:
-    """
-    Lightweight status endpoint for the dashboard.
+    env_ok = _has_keys()
+    base_url = PARTNERIZE_BASE_URL
+    network_ping_ok = False
+    network_count: Optional[int] = None
+    error: Optional[str] = None
+    exec_time: Optional[str] = None
 
-    - Verifies that env vars exist.
-    - Optionally pings /network to confirm credentials.
-    """
-    env_ok = bool(APP_KEY and USER_API_KEY)
+    if env_ok:
+        t0 = time.time()
+        try:
+            data = await _get("/network")
+            exec_time = data.get("execution_time")
+            network_count = data.get("count")
+            if network_count is None:
+                nets = data.get("networks") or []
+                network_count = len(nets)
+            network_ping_ok = True
+        except HTTPException as he:
+            error = str(he.detail)[:400]
+        except Exception as e:
+            error = str(e)[:400]
+        dt = time.time() - t0
+        if not exec_time:
+            exec_time = f"{dt:.3f}s"
 
-    status: Dict[str, Any] = {
+    return {
+        "ok": env_ok and network_ping_ok,
         "env_ok": env_ok,
-        "base_url": PARTNERIZE_BASE_URL,
-        "has_app_key": bool(APP_KEY),
-        "has_user_api_key": bool(USER_API_KEY),
-        "network_ping_ok": False,
-        "network_count": None,
-        "error": None,
+        "network_ping_ok": network_ping_ok,
+        "network_count": network_count,
+        "execution_time": exec_time,
+        "base_url": base_url,
+        "error": error,
     }
 
-    if not env_ok:
-        status["error"] = "Missing PARTNERIZE_APPLICATION_KEY or PARTNERIZE_USER_API_KEY."
-        return status
 
-    try:
-        data = await _partnerize_get("/network")
-        status["network_ping_ok"] = True
-        status["network_count"] = data.get("count")
-    except HTTPException as exc:
-        status["error"] = f"Upstream error: {exc.detail}"
-    except Exception as exc:  # pragma: no cover - defensive
-        status["error"] = f"Unexpected error: {exc}"
-
-    return status
+# -------------------------------------------------------------------
+# Networks summary
+# -------------------------------------------------------------------
 
 
-@router.get("/networks", summary="List Partnerize networks (raw)")
-async def partnerize_networks() -> Dict[str, Any]:
-    """
-    Thin passthrough to GET /network.
+@router.get("/networks/summary", summary="Flattened /network listing")
+async def networks_summary() -> Dict[str, Any]:
+    if not _has_keys():
+        raise HTTPException(
+            status_code=503,
+            detail="Partnerize keys not configured (PARTNERIZE_APP_KEY / PARTNERIZE_API_KEY).",
+        )
 
-    Returns exactly what Partnerize returns so we don't lose information.
-    """
-    return await _partnerize_get("/network")
+    data = await _get("/network")
 
+    raw_networks = data.get("networks") or []
+    items: List[Dict[str, Any]] = []
 
-@router.get("/networks/summary", summary="Simplified networks summary")
-async def partnerize_networks_summary() -> Dict[str, Any]:
-    """
-    Friendly summary for UI:
-    - count
-    - list of {id, name, locale}
-    """
-    data = await _partnerize_get("/network")
-
-    items = []
-    for item in data.get("networks", []):
-        n = item.get("network", {})
+    for entry in raw_networks:
+        n = entry.get("network") or entry
         items.append(
             {
                 "id": n.get("network_id"),
                 "name": n.get("network_name"),
                 "description": n.get("network_description"),
                 "locale": n.get("network_locale"),
-                "default_campaign_id": n.get("default_campaign_id"),
             }
         )
 
     return {
+        "ok": True,
         "count": len(items),
-        "items": items,
         "raw_count": data.get("count"),
         "execution_time": data.get("execution_time"),
+        "items": items,
     }
 
 
-@router.get("/raw", summary="Safe GET passthrough to Partnerize")
-async def partnerize_raw(path: str, limit: int = 100, offset: int = 0) -> Dict[str, Any]:
+# -------------------------------------------------------------------
+# Conversions summary by campaign
+# -------------------------------------------------------------------
+
+
+@router.get(
+    "/conversions/summary",
+    summary="Conversions + revenue summary by campaign_id",
+)
+async def conversions_summary(
+    campaign_ids: str = Query(
+        ...,
+        description="Comma-separated list of Partnerize campaign IDs.",
+    ),
+    days: int = Query(
+        30,
+        ge=1,
+        le=365,
+        description="Lookback window in days for conversions.",
+    ),
+) -> Dict[str, Any]:
     """
-    Very small, *read-only* passthrough for GET operations while we iterate.
+    Pull a rough conversions + revenue summary per campaign_id.
 
-    Usage example:
-      /v1/partnerize/raw?path=/network
-      /v1/partnerize/raw?path=/v2/some/endpoint&limit=50&offset=0
-
-    NOTE: Only allows GET and only to paths starting with '/network' or '/v'.
+    NOTE: This is intentionally defensive:
+    - If Partnerize path or shape changes, per-campaign 'error' is populated
+    - We try a couple of obvious fields for revenue (commission_value, sale_amount, amount)
     """
-    if not (path.startswith("/network") or path.startswith("/v")):
-        raise HTTPException(status_code=400, detail="Path must start with '/network' or '/v'.")
+    if not _has_keys():
+        raise HTTPException(
+            status_code=503,
+            detail="Partnerize keys not configured (PARTNERIZE_APP_KEY / PARTNERIZE_API_KEY).",
+        )
 
-    params: Dict[str, Any] = {"limit": limit, "offset": offset}
-    return await _partnerize_get(path, params=params)
+    ids = [c.strip() for c in campaign_ids.split(",") if c.strip()]
+    if not ids:
+        raise HTTPException(status_code=400, detail="No valid campaign_ids provided.")
+
+    end_date = datetime.utcnow().date()
+    start_date = end_date - timedelta(days=days)
+    start_iso = start_date.isoformat()
+    end_iso = end_date.isoformat()
+
+    window = {"start_date": start_iso, "end_date": end_iso}
+
+    results: List[Dict[str, Any]] = []
+
+    for cid in ids:
+        path = f"/v3/brand/campaigns/{cid}/conversions/bulk"
+        params = {
+            # These are "good guess" params; adjust if Partnerize docs require different keys.
+            "offset": 0,
+            "limit": 500,
+            "from": start_iso,
+            "to": end_iso,
+        }
+
+        conv_count = 0
+        revenue = 0.0
+        currency: Optional[str] = None
+        error: Optional[str] = None
+
+        try:
+            data = await _get(path, params=params)
+
+            # Best guess for where conversions live
+            items = data.get("conversions") or data.get("items") or []
+            if isinstance(items, dict):
+                # Sometimes it's {"conversions": {"items": [...]}}
+                items = items.get("items") or []
+
+            conv_count = len(items)
+
+            for item in items:
+                conv = item.get("conversion") or item
+                # Try a few likely revenue fields
+                raw_amount = (
+                    conv.get("commission_value")
+                    or conv.get("commission")
+                    or conv.get("sale_amount")
+                    or conv.get("amount")
+                )
+                if raw_amount is not None:
+                    try:
+                        revenue += float(raw_amount)
+                    except Exception:
+                        pass
+
+                if not currency:
+                    currency = conv.get("currency")
+
+        except HTTPException as he:
+            error = str(he.detail)[:300]
+        except Exception as e:
+            error = str(e)[:300]
+
+        results.append(
+            {
+                "campaign_id": cid,
+                "conversions": conv_count,
+                "revenue": round(revenue, 2),
+                "currency": currency,
+                "error": error,
+            }
+        )
+
+    return {
+        "ok": True,
+        "days": days,
+        "window": window,
+        "campaigns": results,
+    }
