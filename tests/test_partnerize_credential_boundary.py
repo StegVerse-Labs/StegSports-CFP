@@ -1,4 +1,5 @@
 from pathlib import Path
+import asyncio
 
 import pytest
 from fastapi import HTTPException
@@ -12,18 +13,16 @@ CLIENT = ROOT / "api" / "app" / "partnerize_client.py"
 ROUTES = ROOT / "api" / "app" / "routes_partnerize.py"
 
 
-@pytest.mark.asyncio
-async def test_partnerize_client_fails_closed_to_tvc_route():
+def test_partnerize_client_fails_closed_to_tvc_route():
     with pytest.raises(HTTPException) as caught:
-        await partnerize_client.get_networks()
+        asyncio.run(partnerize_client.get_networks())
     assert caught.value.status_code == 503
     assert "TVC_ADMITTED_PROVIDER_ROUTE_REQUIRED" in str(caught.value.detail)
 
 
-@pytest.mark.asyncio
-async def test_partnerize_route_provider_call_fails_closed():
+def test_partnerize_route_provider_call_fails_closed():
     with pytest.raises(HTTPException) as caught:
-        await routes_partnerize._get("/network")
+        asyncio.run(routes_partnerize._get("/network"))
     assert caught.value.status_code == 503
     assert "TVC_ADMITTED_PROVIDER_ROUTE_REQUIRED" in str(caught.value.detail)
 
