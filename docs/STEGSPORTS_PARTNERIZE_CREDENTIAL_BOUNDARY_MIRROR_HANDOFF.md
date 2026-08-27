@@ -61,3 +61,22 @@ merge: PENDING
 TVC Partnerize route: NOT PROVEN
 provider execution: NOT OBSERVED
 ```
+
+
+## Merge closure — 2026-08-27
+
+```text
+repair PR: #1
+validated head: 0e1bc04fb2363681f558fe81156576150ffd3e4f
+Test Readiness 33128087345: SUCCESS
+merge: 0f1eaddf02b6f335114104bb60c8624c7a29a211
+
+source repair: IMPLEMENTED
+validation: VALIDATED
+merge: MERGED
+TVC Partnerize route: NOT PROVEN
+provider execution: NOT OBSERVED
+authority_effect: NONE
+```
+
+The two StegSports Partnerize consumer credential paths are source-retired. Public SeatGeek/StubHub affiliate/search-link generation remains outside this credential-bearing provider boundary and unchanged.
