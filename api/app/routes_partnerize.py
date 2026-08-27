@@ -1,60 +1,41 @@
 # api/app/routes_partnerize.py
 # [CFP-PARTNERIZE-ROUTES v2025-12-03-01]
 
-import base64
-import os
 import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-import httpx
 from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(tags=["partnerize"])
 
-PARTNERIZE_BASE_URL = os.getenv("PARTNERIZE_BASE_URL", "https://api.partnerize.com")
-PARTNERIZE_APP_KEY = os.getenv("PARTNERIZE_APP_KEY", "").strip()
-PARTNERIZE_API_KEY = os.getenv("PARTNERIZE_API_KEY", "").strip()
+TVC_ROUTE_REQUIRED = "TVC_ADMITTED_PROVIDER_ROUTE_REQUIRED"
+PARTNERIZE_BASE_URL = TVC_ROUTE_REQUIRED
 
 
 def _has_keys() -> bool:
-    return bool(PARTNERIZE_APP_KEY and PARTNERIZE_API_KEY)
+    """StegSports never owns Partnerize credential material."""
+
+    return False
 
 
 def _auth_header() -> Dict[str, str]:
-    if not _has_keys():
-        return {}
-    raw = f"{PARTNERIZE_APP_KEY}:{PARTNERIZE_API_KEY}".encode("utf-8")
-    token = base64.b64encode(raw).decode("ascii")
-    return {"Authorization": f"Basic {token}"}
+    """Retained compatibility name; consumer-side auth construction is retired."""
+
+    raise HTTPException(
+        status_code=503,
+        detail="TVC_ADMITTED_PROVIDER_ROUTE_REQUIRED: Partnerize authentication belongs inside TV/TVC",
+    )
 
 
 async def _get(path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    if not _has_keys():
-        raise HTTPException(
-            status_code=503,
-            detail="Partnerize keys not configured (PARTNERIZE_APP_KEY / PARTNERIZE_API_KEY).",
-        )
-    base = PARTNERIZE_BASE_URL.rstrip("/")
-    url = f"{base}{path}"
+    """Fail closed until TVC returns a bounded non-secret Partnerize result."""
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(url, headers=_auth_header(), params=params)
-        try:
-            resp.raise_for_status()
-        except Exception as e:
-            # Bubble up as HTTPException with some detail
-            raise HTTPException(
-                status_code=resp.status_code,
-                detail=f"Partnerize error: {e} :: {resp.text[:400]}",
-            ) from e
-        try:
-            return resp.json()
-        except Exception:
-            raise HTTPException(
-                status_code=502,
-                detail=f"Invalid JSON from Partnerize: {resp.text[:200]}",
-            )
+    del path, params
+    raise HTTPException(
+        status_code=503,
+        detail="TVC_ADMITTED_PROVIDER_ROUTE_REQUIRED: direct Partnerize execution is retired",
+    )
 
 
 # -------------------------------------------------------------------
@@ -110,7 +91,7 @@ async def networks_summary() -> Dict[str, Any]:
     if not _has_keys():
         raise HTTPException(
             status_code=503,
-            detail="Partnerize keys not configured (PARTNERIZE_APP_KEY / PARTNERIZE_API_KEY).",
+            detail="TVC_ADMITTED_PROVIDER_ROUTE_REQUIRED",
         )
 
     data = await _get("/network")
