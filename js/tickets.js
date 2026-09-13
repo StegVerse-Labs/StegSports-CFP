@@ -1,16 +1,22 @@
 // js/tickets.js
-// [CFP-TICKETS-UI v2025-12-03-03]
+// [CFP-TICKETS-UI v2025-12-03-04]
 
 const API_BASE =
-  (typeof window !== "undefined" && window.CFP_API_BASE) ||
-  "https://scw-api.onrender.com";
+  (typeof window !== "undefined" && window.CFP_API_BASE) || "";
 
 function $(id) {
   return document.getElementById(id);
 }
 
+function requireApiBase() {
+  if (!API_BASE) {
+    throw new Error("CFP_API_BASE must be provided by the admitted StegVerse runtime configuration.");
+  }
+  return API_BASE;
+}
+
 async function fetchJSON(path, params) {
-  const url = new URL(API_BASE + path);
+  const url = new URL(requireApiBase() + path);
 
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -66,7 +72,7 @@ function buildProviderCard(link) {
   actions.className = "provider-actions";
 
   const mainBtn = document.createElement("a");
-  mainBtn.href = API_BASE + link.click_url;
+  mainBtn.href = requireApiBase() + link.click_url;
   mainBtn.target = "_blank";
   mainBtn.rel = "noopener noreferrer";
   mainBtn.textContent = "Open via StegSports";
@@ -155,7 +161,6 @@ async function handleSubmit(evt) {
   }
 }
 
-// Read query params and pre-fill form
 function applyQueryParams() {
   const params = new URLSearchParams(window.location.search);
 
@@ -164,22 +169,12 @@ function applyQueryParams() {
   const maxRows = params.get("max_rows");
   const campaignId = params.get("campaign_id");
 
-  if (eventName) {
-    $("event-name").value = eventName;
-  }
-  if (groupSize) {
-    $("group-size").value = groupSize;
-  }
-  if (maxRows) {
-    $("max-rows").value = maxRows;
-  }
-  if (campaignId) {
-    $("campaign-id").value = campaignId;
-  }
+  if (eventName) $("event-name").value = eventName;
+  if (groupSize) $("group-size").value = groupSize;
+  if (maxRows) $("max-rows").value = maxRows;
+  if (campaignId) $("campaign-id").value = campaignId;
 
-  // If we at least have an event_name, auto-run the search once
   if (eventName) {
-    // Slight delay to avoid racing DOM
     setTimeout(() => {
       handleSubmit(new Event("submit"));
     }, 50);
@@ -189,6 +184,5 @@ function applyQueryParams() {
 document.addEventListener("DOMContentLoaded", () => {
   $("tickets-form").addEventListener("submit", handleSubmit);
   $("reset-btn").addEventListener("click", resetForm);
-
   applyQueryParams();
 });
