@@ -2,8 +2,7 @@
 // [CFP-DASHBOARD v2025-12-03-14]
 
 const SCW_API_BASE =
-  (typeof window !== "undefined" && window.CFP_API_BASE) ||
-  "https://scw-api.onrender.com";
+  (typeof window !== "undefined" && window.CFP_API_BASE) || null;
 
 // Mapping Partnerize campaign_id → CFP game metadata
 // Keep this in sync with js/index.js CFP_GAMES.
@@ -35,7 +34,10 @@ let AFFILIATE_EXPORT = {
 };
 
 async function fetchJSON(path, params) {
-  const url = new URL(SCW_API_BASE + path);
+  if (!SCW_API_BASE) {
+    throw new Error("CFP_API_BASE_NOT_CONFIGURED");
+  }
+  const url = new URL(path, SCW_API_BASE);
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== "") {
